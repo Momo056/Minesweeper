@@ -34,5 +34,5 @@ class Game:
         # Discovered has many tile than free tiles
         return None if self.grid.n_bomb + np.sum(self.player_grid_view) < prod(self.grid.grid_shape()) else True
     
-    def visible_grid(self):
+    def visible_grid(self) -> tuple[np.ndarray, np.ndarray]:
         return self.grid.grid*(self.player_grid_view), self.player_grid_view

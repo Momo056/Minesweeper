@@ -6,10 +6,11 @@ from src.Players.Player_Interface import Player_Interface
 import numpy as np
 
 class Minesweeper_bot(Player_Interface):
-    def __init__(self, random_gambit:bool=True, random_first_move:bool=False) -> None:
+    def __init__(self, random_gambit:bool=True, random_first_move:bool=False, delegated_if_no_solution: Player_Interface|None = None) -> None:
         super().__init__()
         self.random_gambit = random_gambit
         self.random_first_move = random_first_move
+        self.delegated_if_no_solution = delegated_if_no_solution
     
     def run_1_box_analysis(self) -> tuple[int, int] | None:
         while len(self.to_inspect) > 0:
@@ -76,6 +77,9 @@ class Minesweeper_bot(Player_Interface):
         
         
         # No action have been deduce, we sample a possible move where we do not know if there is a bomb
+        if self.delegated_if_no_solution is not None:
+            return self.delegated_if_no_solution.action(grid, grid_view)
+
         possible_actions = np.argwhere(np.logical_and(
             ~grid_view,
             ~self.known_mines,
