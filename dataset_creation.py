@@ -1,3 +1,4 @@
+from argparse import ArgumentParser
 import multiprocessing
 import os
 import time
@@ -19,6 +20,15 @@ import torch
 from random import sample
 
 from models.Game_Tensor_Interface import Game_Tensor_Interface
+
+parser = ArgumentParser()
+parser.add_argument()
+# TODO : Add erguments for these parameters : 
+    # grid_size = 12
+    # mine_percent = 0.22
+    # n_game = 10000
+# Ask mine_percent as an interger percentage
+
 
 def gather_data(n_game:int, grid_size: int, mine_percent: int):
     tensor_list = []
@@ -75,7 +85,7 @@ def main():
     mines_tensors = torch.cat([y for x, y in all_res])
 
     # Save
-    save_name = f'dataset/lose_bot/12x12_{len(tensor_representations)}.pt'
+    save_name = f'dataset/lose_bot/{grid_size}x{grid_size}_{len(tensor_representations)}.pt'
     while os.path.exists(save_name): # Change name until we find a new name
         save_name = save_name.replace('.pt', '_2.pt')
     torch.save([tensor_representations, mines_tensors], save_name)
