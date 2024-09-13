@@ -6,8 +6,6 @@ from scipy.signal import convolve2d
 
 class Grid:
     def __init__(self, n_row: int, n_col: int, bomb_percent:float) -> None:
-        self.grid = np.zeros((n_row, n_col))
-
         self.mines = np.zeros((n_row, n_col), dtype=bool)
         # Place bombs
         self.n_bomb = floor(n_row*n_col*bomb_percent)
@@ -16,7 +14,7 @@ class Grid:
             self.mines[x, y] = True
 
         # Compute the adjacents bombs
-        self.grid = convolve2d(self.mines, np.ones((3, 3)), mode='same')
+        self.update()
 
     def move_to_empty(self, x: int, y: int, depth:int=0, max_depth:int=10)-> int:
         # Find a good spot to move
@@ -54,7 +52,7 @@ class Grid:
 
     def update(self):
         # Update the number of adjacents if the mines array have been changed
-        self.grid = convolve2d(self.mines, np.ones((3, 3)), mode='same')
+        self.grid = convolve2d(self.mines, np.ones((3, 3)), mode='same').astype(np.uint8)
 
     def grid_shape(self):
         return self.mines.shape

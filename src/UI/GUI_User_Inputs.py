@@ -69,9 +69,18 @@ class GUI_User_Inputs:
                 button = self.buttons[row][col]
 
                 if not game.player_grid_view[row, col]:
+                    # Covered boxes
                     if self.flags[row, col]:
                         text_button = 'F'
                         color='yellow'
+                    elif game.grid.mines[row, col] and game.is_ended():
+                        # Show the mines at the end of the game
+                        if game.result():
+                            text_button = 'F'
+                            color='yellow'
+                        else:
+                            text_button = 'M'
+                            color='orange'
                     else:
                         text_button = ''
                         color='gray'
