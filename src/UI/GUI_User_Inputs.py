@@ -26,11 +26,14 @@ class GUI_User_Inputs:
 
         self.status_bar = tk.Label(self.master, text=f"Total number of mines : Unknow", bd=1, relief=tk.SUNKEN, anchor=tk.W)
         self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
-
+        
         # self.initialize_grid()
         # self.generate_mines(10)
 
-    def initialize_grid(self, game: Game):
+    def initialize_grid(self, game: Game, frame: tk.Frame=None):
+        if frame == None:
+            frame = self.grid_frame
+        
         # Initialize flag storage
         self.flags = np.zeros_like(game.player_grid_view)
 
@@ -39,7 +42,7 @@ class GUI_User_Inputs:
         for row in range(game.grid.grid_shape()[0]):
             row_buttons = []
             for col in range(game.grid.grid_shape()[1]):
-                button = tk.Button(self.grid_frame, width=2, height=1, command=lambda r=row, c=col: self.on_button_click(game, r, c))
+                button = tk.Button(frame, width=2, height=1, command=lambda r=row, c=col: self.on_button_click(game, r, c))
                 button.grid(row=row, column=col)
                 button.bind("<Button-3>", lambda e, r=row, c=col: self.on_right_click(game, r, c))
                 row_buttons.append(button)

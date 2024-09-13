@@ -177,3 +177,6 @@ class Minesweeper_bot(Player_Interface):
                     
         return None
       
+    def get_known_mines(self) -> ndarray:
+        return self.known_mines 
+
