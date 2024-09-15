@@ -14,6 +14,8 @@ class GUI_Hint_Grid:
         # Create the structure to place both game grids (player and hint)
         self.create_widgets()
 
+        self.old_probability_map = None
+
     def start(self, game: Game):
         # Update grids of the minesweeper
         self.initialize_grid(game)
@@ -118,6 +120,16 @@ class GUI_Hint_Grid:
         
         # Update the hint grid with best moves suggested
         hints = self.calculate_best_moves(game)  # This is a placeholder for the hint calculation logic
+        try:
+            model_map = self.bot.get_probability_map()
+            # TODO : Use dependency injection to implement the logic to only show the map if it has been changed
+            # if self.old_probability_map is None or (model_map != self.old_probability_map):
+            #     self.old_probability_map = model_map
+            #     probability_map = model_map
+            # else:
+            #     probability_map = None
+        except AttributeError:
+            probability_map = None
         grid, grid_view = game.visible_grid()
 
         for row in range(game.grid.grid_shape()[0]):
@@ -127,15 +139,37 @@ class GUI_Hint_Grid:
                 if grid_view[row, col]:
                     self.update_visible_button(button, int(grid[row, col]))
                 else:
-                    self.update_hint_button(button, hints[row, col])
+                    self.update_hint_button(button, hints[row, col], None if probability_map is None else probability_map[row, col])
                 
                 
     def update_visible_button(self, button: tk.Button, value: int):
         text_button = str(value) if value != 0 else ''
         color = 'lightgrey'
         button.config(text=text_button, bg=color)
+
+    def get_color(self, value: float):
+        """
+        Takes a value between -1 and +1 and returns a corresponding color
+        that is a gradient between orange (-1) and cyan (+1).
+
+        :param value: A float between -1 and 1
+        :return: A hex color string for Tkinter (e.g., '#RRGGBB')
+        """
+        # Ensure value is between -1 and 1
+        value = max(-1, min(1, value))
+
+        # Normalize value to be between 0 and 1 (0 -> orange, 1 -> cyan)
+        normalized_value = (value + 1) / 2
+
+        # Compute the red, green, and blue components based on the normalized value
+        red = int((1 - normalized_value) * 255 + normalized_value * 0)   # Orange has 255 red, Cyan has 0 red
+        green = int((1 - normalized_value) * 165 + normalized_value * 255) # Orange has 165 green, Cyan has 255 green
+        blue = int((1 - normalized_value) * 0 + normalized_value * 255)   # Orange has 0 blue, Cyan has 255 blue
+
+        # Return the color as a hex string
+        return f'#{red:02x}{green:02x}{blue:02x}'
                 
-    def update_hint_button(self, button: tk.Button, hint_value:Any):
+    def update_hint_button(self, button: tk.Button, hint_value:Any, probability: float|None=None):
         if hint_value == 1:
             text_button = 'V'  # Indicate safe move
             color = 'green'
@@ -143,8 +177,12 @@ class GUI_Hint_Grid:
             text_button = 'X'  # Indicate dangerous move (possible mine)
             color = 'red'
         else:
-            text_button = ''
-            color = 'gray'
+            if probability is not None:
+                text_button = 'P'
+                color = self.get_color(2*probability-1)
+            else:
+                text_button = ''
+                color = 'gray'
 
         button.config(text=text_button, bg=color)
 

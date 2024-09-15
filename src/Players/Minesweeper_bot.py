@@ -182,5 +182,9 @@ class Minesweeper_bot(Player_Interface):
         return None
       
     def get_known_mines(self) -> ndarray:
-        return self.known_mines 
+        return self.known_mines
+
+
+    def get_probability_map(self):
+        return self.delegated_if_no_solution.get_probability_map()
 
