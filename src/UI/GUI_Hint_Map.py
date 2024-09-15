@@ -199,16 +199,17 @@ class GUI_Hint_Map:
 
     def update_probability_button(self, button: tk.Button, probability: float | None):
         if probability is not None:
-            text_button = 'P'
-            color = self.get_color(2 * probability - 1)
+            # Format the probability to two decimal places and ensure it starts with a dot (e.g., ".39" for 0.38856)
+            text_button = f"{(1-probability):.2f}"[1:]  # Slice off the leading '0' to keep the format '.XX'
+            color = self.get_color(probability)
         else:
             text_button = ''
             color = 'gray'
         button.config(text=text_button, bg=color)
 
     def get_color(self, value: float):
-        value = max(-1, min(1, value))
-        normalized_value = (value + 1) / 2
+        value = max(0, min(1, value))
+        normalized_value = value
 
         red = int((1 - normalized_value) * 255)
         green = int((1 - normalized_value) * 165 + normalized_value * 255)
