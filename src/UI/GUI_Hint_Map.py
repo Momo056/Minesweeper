@@ -199,8 +199,9 @@ class GUI_Hint_Map:
 
     def update_probability_button(self, button: tk.Button, probability: float | None):
         if probability is not None:
+            two_digit = round((1-probability)*100)
             # Format the probability to two decimal places and ensure it starts with a dot (e.g., ".39" for 0.38856)
-            text_button = f"{(1-probability):.2f}"[1:]  # Slice off the leading '0' to keep the format '.XX'
+            text_button = f".{two_digit}" if two_digit < 100 else '1'  # Slice off the leading '0' to keep the format '.XX'
             color = self.get_color(probability)
         else:
             text_button = ''
