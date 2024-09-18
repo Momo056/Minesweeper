@@ -112,25 +112,25 @@ class NN(pl.LightningModule):
         return self.model(x)
     
     def training_step(self, batch, batch_idx):
-        loss, model_output = self._common_step(batch, batch_idx)
+        loss = self._common_step(batch, batch_idx)
         self.log('train_loss', loss)
-        return loss, model_output
+        return loss
     
     def test_step(self, batch, batch_idx):
-        loss, model_output = self._common_step(batch, batch_idx)
+        loss = self._common_step(batch, batch_idx)
         self.log('test_loss', loss)
-        return loss, model_output
+        return loss
     
     def validation_step(self, batch, batch_idx):
-        loss, model_output = self._common_step(batch, batch_idx)
+        loss = self._common_step(batch, batch_idx)
         self.log('validation_loss', loss)
-        return loss, model_output
+        return loss
     
     def _common_step(self, batch, batch_idx):# Get data to cuda if possible
         grid_tensor, mines = batch
         model_output = model(grid_tensor)
         loss = self.compute_loss(model_output, grid_tensor, mines)
-        return loss, model_output
+        return loss
     
     def predict_step(self, batch, batch_idx):# Get data to cuda if possible
         print('Not tested')
@@ -149,6 +149,9 @@ class NN(pl.LightningModule):
         no_mines_proba += (~boundary)*(torch.max(no_mines_proba, dim=0) < self.out_of_boundary_treshold)
         
         return [valid_argmax2D(t.to('cpu'), grid_view) for t, g in zip(grid_tensor, grid_view)]
+    
+    def configure_optimizers(self) -> optim.Optimizer:
+        return optim.Adam(self.parameters())
 
 
 # Set device cuda for GPU if it's available otherwise run on the CPU
@@ -164,9 +167,9 @@ dataset = torch.load('dataset/uniform_bot/8x8_2990.pt') # Shape : [2990, 10, 8, 
 random_seed = 86431
 train_data, test_data, train_mines, test_mines = train_test_split(*dataset, test_size=0.1, shuffle=False, random_state=random_seed) # Do not shuffle to not mix the same grids in training and test
 train_dataset = TensorDataset(train_data.type(torch.float32).to(device), train_mines.to(device))
-test_dataset = TensorDataset(test_data.type(torch.float32).to(device), test_mines.to(device))
+val_dataset = TensorDataset(test_data.type(torch.float32).to(device), test_mines.to(device))
 train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
-test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False)
+val_loader = DataLoader(dataset=val_dataset, batch_size=batch_size, shuffle=False)
 
 # Initialize network
 model = NN(alpha).to(device)
@@ -176,25 +179,17 @@ criterion = Boundary_KL_Loss(alpha)
 optimizer = optim.Adam(model.parameters())
 
 
-# Training loop
-for e in tqdm(range(n_epoch)):
-    model.train()
-    for batch_idx, (grid_tensor, mines) in enumerate(tqdm(train_loader)):
-        # Get data to cuda if possible
-        grid_tensor = grid_tensor.to(device)
-        mines = mines.to(device)
-
-        # Forward
-        model_output = model(grid_tensor)
-        loss = criterion(model_output, grid_tensor, mines)
-
-        # Backward
-        optimizer.zero_grad()
-        loss.backward()
-
-        # Gradient descent or adam step
-        optimizer.step()
-
+trainer = pl.Trainer(
+    accelerator='gpu', # 'gpu' or 'tpu'
+    devices=[0], # Devices to use
+    min_epochs=1, 
+    max_epochs=3, 
+    precision=16,
+    # overfit_batches=1, # Debug : Try to overfit the model to one batch
+    fast_dev_run=True, # Debug : Smaller loops
+)
+trainer.fit(model, train_loader, val_loader)
+trainer.validate(model, val_loader)
 
 
 # Check accuracy on training & test to see how good our model
@@ -224,7 +219,7 @@ def check_accuracy(loader, model):
 # Check accuracy on training & test to see how good our model
 model.to(device)
 print(f"Accuracy on training set: {check_accuracy(train_loader, model)*100:.2f}")
-print(f"Accuracy on test set: {check_accuracy(test_loader, model)*100:.2f}")
+print(f"Accuracy on test set: {check_accuracy(val_loader, model)*100:.2f}")
 
 
 
