@@ -1,6 +1,7 @@
 from sklearn.model_selection import train_test_split
 import torch
 import torch.nn.functional as F
+from torchmetrics import Accuracy
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 from torch import nn, optim
@@ -107,22 +108,28 @@ class NN(pl.LightningModule):
         )
         self.compute_loss = Boundary_KL_Loss(alpha)
         self.game_tensor_interface = Game_Tensor_Interface()
+        self.accuracy = Accuracy('binary')
     
     def forward(self, x):
         return self.model(x)
     
     def training_step(self, batch, batch_idx):
-        loss = self._common_step(batch, batch_idx)
-        self.log('train_loss', loss)
+        loss, model_output = self._common_step(batch, batch_idx)
+
+        grid_tensor, mines = batch
+        boundaries = Game_Tensor_Interface.unknown_boundaries(grid_tensor)
+        accuracy = self.accuracy(model_output[:, 0][boundaries], mines[boundaries])
+
+        self.log_dict({'train_loss':loss, 'boundary_accuracy':accuracy}, on_step=False, on_epoch=True, prog_bar=True)
         return loss
     
     def test_step(self, batch, batch_idx):
-        loss = self._common_step(batch, batch_idx)
+        loss, model_output = self._common_step(batch, batch_idx)
         self.log('test_loss', loss)
         return loss
     
     def validation_step(self, batch, batch_idx):
-        loss = self._common_step(batch, batch_idx)
+        loss, model_output = self._common_step(batch, batch_idx)
         self.log('validation_loss', loss)
         return loss
     
@@ -130,7 +137,7 @@ class NN(pl.LightningModule):
         grid_tensor, mines = batch
         model_output = model(grid_tensor)
         loss = self.compute_loss(model_output, grid_tensor, mines)
-        return loss
+        return loss, model_output
     
     def predict_step(self, batch, batch_idx):# Get data to cuda if possible
         print('Not tested')
@@ -158,12 +165,12 @@ class NN(pl.LightningModule):
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Hyperparameters
-n_epoch = 3
 batch_size = 128
 alpha = 0.95 # Part of loss on the Unknown boundaries
 
 # Load Data
-dataset = torch.load('dataset/uniform_bot/8x8_2990.pt') # Shape : [2990, 10, 8, 8]
+# dataset = torch.load('dataset/uniform_bot/8x8_2990.pt') # Shape : [2990, 10, 8, 8]
+dataset = torch.load('dataset/lose_bot/12x12_23253.pt') # Shape : [2990, 10, 8, 8]
 random_seed = 86431
 train_data, test_data, train_mines, test_mines = train_test_split(*dataset, test_size=0.1, shuffle=False, random_state=random_seed) # Do not shuffle to not mix the same grids in training and test
 train_dataset = TensorDataset(train_data.type(torch.float32).to(device), train_mines.to(device))
@@ -183,10 +190,10 @@ trainer = pl.Trainer(
     accelerator='gpu', # 'gpu' or 'tpu'
     devices=[0], # Devices to use
     min_epochs=1, 
-    max_epochs=3, 
+    max_epochs=5, 
     precision=16,
     # overfit_batches=1, # Debug : Try to overfit the model to one batch
-    fast_dev_run=True, # Debug : Smaller loops
+    # fast_dev_run=True, # Debug : Smaller loops
 )
 trainer.fit(model, train_loader, val_loader)
 trainer.validate(model, val_loader)
