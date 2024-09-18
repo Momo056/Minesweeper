@@ -66,6 +66,21 @@ class Boundary_KL_Loss:
         loss = self.boundary_alpha * boundary_loss + (1-self.boundary_alpha)*flat_loss
         return loss
 
+def valid_argmax2D(tensor, grid_view):
+    valid_flat = ~torch.flatten(torch.tensor(grid_view))
+    output_flat = torch.flatten(tensor)
+
+    valid_indices = torch.where(valid_flat)[0]
+    valid_max_index = torch.argmax(output_flat[valid_indices])
+    valid_indices[valid_max_index]
+
+    if grid_view.shape[0] != grid_view.shape[1]:
+        raise NotImplementedError()
+    
+    max_row = valid_indices[valid_max_index] // grid_view.shape[0]
+    max_col = valid_indices[valid_max_index] % grid_view.shape[0]
+    return max_row, max_col
+
 class NN(pl.LightningModule):
     def __init__(self, alpha, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -91,22 +106,50 @@ class NN(pl.LightningModule):
             nn.LogSoftmax(-3),
         )
         self.compute_loss = Boundary_KL_Loss(alpha)
+        self.game_tensor_interface = Game_Tensor_Interface()
     
     def forward(self, x):
         return self.model(x)
     
-    def training_step(self, batch, batch_idx):# Get data to cuda if possible
+    def training_step(self, batch, batch_idx):
+        return self._common_step(batch, batch_idx)
+    
+    def test_step(self, batch, batch_idx):
+        return self._common_step(batch, batch_idx)
+    
+    def validation_step(self, batch, batch_idx):
+        return self._common_step(batch, batch_idx)
+    
+    def _common_step(self, batch, batch_idx):# Get data to cuda if possible
         grid_tensor, mines = batch
         model_output = model(grid_tensor)
         loss = self.compute_loss(model_output, grid_tensor, mines)
-        return loss
+        return loss, model_output
+    
+    def predict_step(self, batch, batch_idx):# Get data to cuda if possible
+        print('Not tested')
+        grid_tensor, mines = batch
+        grid, grid_view = self.game_tensor_interface.to_grid(grid_tensor)
+        
+        model_output = self.model(grid_tensor)
+
+        no_mines_proba = torch.exp(model_output[:, 0])
+
+        # Remove the possibility to pick a non boundary box by giving it negative probability
+        boundary = Game_Tensor_Interface.unknown_boundaries(grid_tensor)
+        no_mines_proba -= (~boundary)*1
+
+        # If the remaining boxes are not in the boundary (can append if an area is surronded by mines)
+        no_mines_proba += (~boundary)*(torch.max(no_mines_proba, dim=0) < self.out_of_boundary_treshold)
+        
+        return [valid_argmax2D(t.to('cpu'), grid_view) for t, g in zip(grid_tensor, grid_view)]
 
 
 # Set device cuda for GPU if it's available otherwise run on the CPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Hyperparameters
-n_epoch = 10
+n_epoch = 3
 batch_size = 128
 alpha = 0.95 # Part of loss on the Unknown boundaries
 
