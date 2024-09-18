@@ -112,13 +112,19 @@ class NN(pl.LightningModule):
         return self.model(x)
     
     def training_step(self, batch, batch_idx):
-        return self._common_step(batch, batch_idx)
+        loss, model_output = self._common_step(batch, batch_idx)
+        self.log('train_loss', loss)
+        return loss, model_output
     
     def test_step(self, batch, batch_idx):
-        return self._common_step(batch, batch_idx)
+        loss, model_output = self._common_step(batch, batch_idx)
+        self.log('test_loss', loss)
+        return loss, model_output
     
     def validation_step(self, batch, batch_idx):
-        return self._common_step(batch, batch_idx)
+        loss, model_output = self._common_step(batch, batch_idx)
+        self.log('validation_loss', loss)
+        return loss, model_output
     
     def _common_step(self, batch, batch_idx):# Get data to cuda if possible
         grid_tensor, mines = batch
