@@ -1,7 +1,9 @@
+from os import path
+from pytorch_lightning.utilities.types import TRAIN_DATALOADERS
 from sklearn.model_selection import train_test_split
 import torch
 import torch.nn.functional as F
-from torchmetrics import Accuracy
+from torchmetrics import Accuracy, Metric
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 from torch import nn, optim
@@ -23,34 +25,41 @@ import pytorch_lightning as pl
 
 pl.LightningModule
 
-# class NN(nn.Module):
-#     def __init__(self, *args, **kwargs) -> None:
-#         super().__init__(*args, **kwargs)
-#         self.model = nn.Sequential(
-#             Symetry_Inveriant_Conv2D(
-#                 nn.Sequential(
-#                     nn.Conv2d(10, 16, 9, padding='same', padding_mode='zeros'),
-#                     nn.ELU(),
-#                 )
-#             ),
-#             Symetry_Inveriant_Conv2D(
-#                 nn.Sequential(
-#                     nn.Conv2d(16, 16, 9, padding='same', padding_mode='zeros'),
-#                     nn.ELU(),
-#                 )
-#             ),
-#             Symetry_Inveriant_Conv2D(
-#                 nn.Sequential(
-#                     nn.Conv2d(16, 2, 1, padding='same', padding_mode='zeros'),
-#                     nn.ELU(),
-#                 )
-#             ),
-#             nn.LogSoftmax(-3),
-#         )
-    
-#     def forward(self, x):
-#         return self.model(x)
+class Data_Module(pl.LightningDataModule):
+    def __init__(self, tensor_file_path: str, batch_size: int, val_size: float = 0.1, random_seed = 86431) -> None:
+        super().__init__()
+        self.tensor_file_path = tensor_file_path
+        self.batch_size = batch_size
+        self.val_size = val_size
+        self.random_seed = random_seed
 
+    def prepare_data(self) -> None:
+        assert path.exists(self.tensor_file_path)
+
+        return super().prepare_data()
+    
+    def setup(self, stage: str) -> None:
+        dataset = torch.load(self.tensor_file_path) # Shape : [2990, 10, 8, 8]
+        train_data, test_data, train_mines, test_mines = train_test_split(*dataset, test_size=self.val_size, shuffle=False, random_state=self.random_seed) # Do not shuffle to not mix the same grids in training and test
+        self.train_dataset = TensorDataset(train_data.type(torch.float32), train_mines)
+        self.val_dataset = TensorDataset(test_data.type(torch.float32), test_mines)
+
+        return super().setup(stage)
+    
+    def train_dataloader(self) -> torch.Any:
+        return DataLoader(
+            self.train_dataset,
+            batch_size=self.batch_size,
+            shuffle=True
+        )
+    
+    def val_dataloader(self) -> torch.Any:
+        return DataLoader(
+            self.val_dataset,
+            batch_size=self.batch_size,
+            shuffle=False
+        )
+    
 class Boundary_KL_Loss:
     def __init__(self, boundary_alpha: float) -> None:
         self.boundary_alpha = boundary_alpha
@@ -117,10 +126,8 @@ class NN(pl.LightningModule):
         loss, model_output = self._common_step(batch, batch_idx)
 
         grid_tensor, mines = batch
-        boundaries = Game_Tensor_Interface.unknown_boundaries(grid_tensor)
-        accuracy = self.accuracy(model_output[:, 0][boundaries], mines[boundaries])
 
-        self.log_dict({'train_loss':loss, 'boundary_accuracy':accuracy}, on_step=False, on_epoch=True, prog_bar=True)
+        self.log_dict({'train_loss':loss}, on_step=False, on_epoch=True, prog_bar=True)
         return loss
     
     def test_step(self, batch, batch_idx):
@@ -168,24 +175,14 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 batch_size = 128
 alpha = 0.95 # Part of loss on the Unknown boundaries
 
-# Load Data
-# dataset = torch.load('dataset/uniform_bot/8x8_2990.pt') # Shape : [2990, 10, 8, 8]
-dataset = torch.load('dataset/lose_bot/12x12_23253.pt') # Shape : [2990, 10, 8, 8]
-random_seed = 86431
-train_data, test_data, train_mines, test_mines = train_test_split(*dataset, test_size=0.1, shuffle=False, random_state=random_seed) # Do not shuffle to not mix the same grids in training and test
-train_dataset = TensorDataset(train_data.type(torch.float32).to(device), train_mines.to(device))
-val_dataset = TensorDataset(test_data.type(torch.float32).to(device), test_mines.to(device))
-train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
-val_loader = DataLoader(dataset=val_dataset, batch_size=batch_size, shuffle=False)
 
 # Initialize network
 model = NN(alpha).to(device)
-
-# Loss and optimizer
-criterion = Boundary_KL_Loss(alpha)
-optimizer = optim.Adam(model.parameters())
-
-
+dm = Data_Module(
+    'dataset/lose_bot/12x12_23253.pt',
+    batch_size,
+    0.1,
+)
 trainer = pl.Trainer(
     accelerator='gpu', # 'gpu' or 'tpu'
     devices=[0], # Devices to use
@@ -193,40 +190,9 @@ trainer = pl.Trainer(
     max_epochs=5, 
     precision=16,
     # overfit_batches=1, # Debug : Try to overfit the model to one batch
-    # fast_dev_run=True, # Debug : Smaller loops
+    fast_dev_run=True, # Debug : Smaller loops
 )
-trainer.fit(model, train_loader, val_loader)
-trainer.validate(model, val_loader)
-
-
-# Check accuracy on training & test to see how good our model
-def check_accuracy(loader, model):
-    running_loss = 0.0
-    model.eval()
-
-    # We don't need to keep track of gradients here so we wrap it in torch.no_grad()
-    with torch.no_grad():
-        # Loop through the data
-        for grid_tensor, mines in loader:
-
-            # Move data to device
-            grid_tensor = grid_tensor.to(device)
-            mines = mines.to(device)
-
-            # Forward pass
-            model_output = model(grid_tensor)
-            loss = criterion(model_output, grid_tensor, mines)
-
-            running_loss += float(loss.detach().to('cpu'))
-
-    model.train()
-    return running_loss / len(loader)
-
-
-# Check accuracy on training & test to see how good our model
-model.to(device)
-print(f"Accuracy on training set: {check_accuracy(train_loader, model)*100:.2f}")
-print(f"Accuracy on test set: {check_accuracy(val_loader, model)*100:.2f}")
-
+trainer.fit(model, dm)
+trainer.validate(model, dm)
 
 
