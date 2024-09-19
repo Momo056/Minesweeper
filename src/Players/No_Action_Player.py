@@ -6,4 +6,3 @@ import numpy as np
 class No_Action_Player(Player_Interface):
     def action(self, grid: np.ndarray, grid_view: np.ndarray):
         return None
-    

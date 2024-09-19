@@ -6,7 +6,7 @@ import numpy as np
 
 
 class GUI_Bot_Inputs(GUI_User_Inputs):
-    def __init__(self, master: tk.Tk | None = None, delay:int=1000):
+    def __init__(self, master: tk.Tk | None = None, delay: int = 1000):
         super().__init__(master)
         self.master.bind("<FocusIn>", self.on_focus_in)
         self.delay = delay
@@ -28,8 +28,6 @@ class GUI_Bot_Inputs(GUI_User_Inputs):
             except:
                 pass
             self.master.after(self.delay, self.bot_play)
-
-
 
     def start(self, game: Game, player: Player_Interface):
         self.game = game

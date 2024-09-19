@@ -2,8 +2,9 @@ import tkinter as tk
 import numpy as np
 from src.Game import Game
 
+
 class GUI_User_Inputs:
-    def __init__(self, master: tk.Tk | None=None):
+    def __init__(self, master: tk.Tk | None = None):
         self.master = master if master is not None else tk.Tk()
         self.master.title("Minesweeper")
         self.master.geometry("1440x720")
@@ -18,22 +19,28 @@ class GUI_User_Inputs:
         # Lunch the app
         self.master.mainloop()
 
-        return game.result()        
+        return game.result()
 
     def create_widgets(self):
         self.grid_frame = tk.Frame(self.master)
         self.grid_frame.pack(pady=10)
 
-        self.status_bar = tk.Label(self.master, text=f"Total number of mines : Unknow", bd=1, relief=tk.SUNKEN, anchor=tk.W)
+        self.status_bar = tk.Label(
+            self.master,
+            text=f"Total number of mines : Unknow",
+            bd=1,
+            relief=tk.SUNKEN,
+            anchor=tk.W,
+        )
         self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
-        
+
         # self.initialize_grid()
         # self.generate_mines(10)
 
-    def initialize_grid(self, game: Game, frame: tk.Frame=None):
+    def initialize_grid(self, game: Game, frame: tk.Frame = None):
         if frame == None:
             frame = self.grid_frame
-        
+
         # Initialize flag storage
         self.flags = np.zeros_like(game.player_grid_view)
 
@@ -42,9 +49,17 @@ class GUI_User_Inputs:
         for row in range(game.grid.grid_shape()[0]):
             row_buttons = []
             for col in range(game.grid.grid_shape()[1]):
-                button = tk.Button(frame, width=2, height=1, command=lambda r=row, c=col: self.on_button_click(game, r, c))
+                button = tk.Button(
+                    frame,
+                    width=2,
+                    height=1,
+                    command=lambda r=row, c=col: self.on_button_click(game, r, c),
+                )
                 button.grid(row=row, column=col)
-                button.bind("<Button-3>", lambda e, r=row, c=col: self.on_right_click(game, r, c))
+                button.bind(
+                    "<Button-3>",
+                    lambda e, r=row, c=col: self.on_right_click(game, r, c),
+                )
                 row_buttons.append(button)
             self.buttons.append(row_buttons)
 
@@ -71,25 +86,25 @@ class GUI_User_Inputs:
                 if not game.player_grid_view[row, col]:
                     # Covered boxes
                     if self.flags[row, col]:
-                        text_button = 'F'
-                        color='yellow'
+                        text_button = "F"
+                        color = "yellow"
                     elif game.grid.mines[row, col] and game.is_ended():
                         # Show the mines at the end of the game
                         if game.result():
-                            text_button = 'F'
-                            color='yellow'
+                            text_button = "F"
+                            color = "yellow"
                         else:
-                            text_button = 'M'
-                            color='orange'
+                            text_button = "M"
+                            color = "orange"
                     else:
-                        text_button = ''
-                        color='gray'
+                        text_button = ""
+                        color = "gray"
                 elif game.grid.mines[row, col]:
-                    text_button = 'M'
-                    color='red'
+                    text_button = "M"
+                    color = "red"
                 else:
                     value = int(game.grid.grid[row, col])
-                    text_button = str(value) if value != 0 else ''
-                    color='lightgrey'
+                    text_button = str(value) if value != 0 else ""
+                    color = "lightgrey"
 
                 button.config(text=text_button, bg=color)

@@ -4,8 +4,9 @@ import numpy as np
 from src.Players.Player_Interface import Player_Interface
 from src.Game import Game
 
+
 class GUI_Hint_Grid:
-    def __init__(self, bot: Player_Interface, master: tk.Tk | None=None):
+    def __init__(self, bot: Player_Interface, master: tk.Tk | None = None):
         self.master = master if master is not None else tk.Tk()
         self.master.title("Minesweeper with Hints")
         self.master.geometry("1440x720")
@@ -40,10 +41,16 @@ class GUI_Hint_Grid:
         self.hint_grid_frame.grid(row=0, column=1, padx=10)
 
         # Status bar at the bottom of the window
-        self.status_bar = tk.Label(self.master, text="Total number of mines: Unknown", bd=1, relief=tk.SUNKEN, anchor=tk.W)
+        self.status_bar = tk.Label(
+            self.master,
+            text="Total number of mines: Unknown",
+            bd=1,
+            relief=tk.SUNKEN,
+            anchor=tk.W,
+        )
         self.status_bar.grid(row=1, column=0, sticky="we")
 
-    def initialize_grid(self, game: Game, frame: tk.Frame=None):
+    def initialize_grid(self, game: Game, frame: tk.Frame = None):
         if frame is None:
             frame = self.grid_frame
 
@@ -55,9 +62,17 @@ class GUI_Hint_Grid:
         for row in range(game.grid.grid_shape()[0]):
             row_buttons = []
             for col in range(game.grid.grid_shape()[1]):
-                button = tk.Button(frame, width=2, height=1, command=lambda r=row, c=col: self.on_button_click(game, r, c))
+                button = tk.Button(
+                    frame,
+                    width=2,
+                    height=1,
+                    command=lambda r=row, c=col: self.on_button_click(game, r, c),
+                )
                 button.grid(row=row, column=col)
-                button.bind("<Button-3>", lambda e, r=row, c=col: self.on_right_click(game, r, c))
+                button.bind(
+                    "<Button-3>",
+                    lambda e, r=row, c=col: self.on_right_click(game, r, c),
+                )
                 row_buttons.append(button)
             self.buttons.append(row_buttons)
 
@@ -65,7 +80,7 @@ class GUI_Hint_Grid:
 
         self.update_grid(game)
 
-    def initialize_hint_grid(self, game: Game, frame: tk.Frame=None):
+    def initialize_hint_grid(self, game: Game, frame: tk.Frame = None):
         if frame is None:
             frame = self.hint_grid_frame
 
@@ -99,27 +114,29 @@ class GUI_Hint_Grid:
 
                 if not game.player_grid_view[row, col]:
                     if self.flags[row, col]:
-                        text_button = 'F'
-                        color = 'yellow'
+                        text_button = "F"
+                        color = "yellow"
                     else:
-                        text_button = ''
-                        color = 'gray'
+                        text_button = ""
+                        color = "gray"
                 elif game.grid.mines[row, col]:
-                    text_button = 'M'
-                    color = 'red'
+                    text_button = "M"
+                    color = "red"
                 else:
                     value = int(game.grid.grid[row, col])
-                    text_button = str(value) if value != 0 else ''
-                    color = 'lightgrey'
+                    text_button = str(value) if value != 0 else ""
+                    color = "lightgrey"
 
                 button.config(text=text_button, bg=color)
 
     def update_hint_grid(self, game: Game):
         if game.is_ended():
             return
-        
+
         # Update the hint grid with best moves suggested
-        hints = self.calculate_best_moves(game)  # This is a placeholder for the hint calculation logic
+        hints = self.calculate_best_moves(
+            game
+        )  # This is a placeholder for the hint calculation logic
         try:
             model_map = self.bot.get_probability_map()
             # TODO : Use dependency injection to implement the logic to only show the map if it has been changed
@@ -135,16 +152,19 @@ class GUI_Hint_Grid:
         for row in range(game.grid.grid_shape()[0]):
             for col in range(game.grid.grid_shape()[1]):
                 button = self.hint_buttons[row][col]
-                
+
                 if grid_view[row, col]:
                     self.update_visible_button(button, int(grid[row, col]))
                 else:
-                    self.update_hint_button(button, hints[row, col], None if probability_map is None else probability_map[row, col])
-                
-                
+                    self.update_hint_button(
+                        button,
+                        hints[row, col],
+                        None if probability_map is None else probability_map[row, col],
+                    )
+
     def update_visible_button(self, button: tk.Button, value: int):
-        text_button = str(value) if value != 0 else ''
-        color = 'lightgrey'
+        text_button = str(value) if value != 0 else ""
+        color = "lightgrey"
         button.config(text=text_button, bg=color)
 
     def get_color(self, value: float):
@@ -162,27 +182,35 @@ class GUI_Hint_Grid:
         normalized_value = (value + 1) / 2
 
         # Compute the red, green, and blue components based on the normalized value
-        red = int((1 - normalized_value) * 255 + normalized_value * 0)   # Orange has 255 red, Cyan has 0 red
-        green = int((1 - normalized_value) * 165 + normalized_value * 255) # Orange has 165 green, Cyan has 255 green
-        blue = int((1 - normalized_value) * 0 + normalized_value * 255)   # Orange has 0 blue, Cyan has 255 blue
+        red = int(
+            (1 - normalized_value) * 255 + normalized_value * 0
+        )  # Orange has 255 red, Cyan has 0 red
+        green = int(
+            (1 - normalized_value) * 165 + normalized_value * 255
+        )  # Orange has 165 green, Cyan has 255 green
+        blue = int(
+            (1 - normalized_value) * 0 + normalized_value * 255
+        )  # Orange has 0 blue, Cyan has 255 blue
 
         # Return the color as a hex string
-        return f'#{red:02x}{green:02x}{blue:02x}'
-                
-    def update_hint_button(self, button: tk.Button, hint_value:Any, probability: float|None=None):
+        return f"#{red:02x}{green:02x}{blue:02x}"
+
+    def update_hint_button(
+        self, button: tk.Button, hint_value: Any, probability: float | None = None
+    ):
         if hint_value == 1:
-            text_button = 'V'  # Indicate safe move
-            color = 'green'
+            text_button = "V"  # Indicate safe move
+            color = "green"
         elif hint_value == -1:
-            text_button = 'X'  # Indicate dangerous move (possible mine)
-            color = 'red'
+            text_button = "X"  # Indicate dangerous move (possible mine)
+            color = "red"
         else:
             if probability is not None:
-                text_button = 'P'
-                color = self.get_color(2*probability-1)
+                text_button = "P"
+                color = self.get_color(2 * probability - 1)
             else:
-                text_button = ''
-                color = 'gray'
+                text_button = ""
+                color = "gray"
 
         button.config(text=text_button, bg=color)
 
@@ -192,7 +220,7 @@ class GUI_Hint_Grid:
 
         bot_action = self.bot.action(*game.visible_grid())
         hints[*bot_action] = 1
-        
+
         try:
             known_mines = self.bot.get_known_mines()
             hints[known_mines] = -1

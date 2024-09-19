@@ -5,6 +5,7 @@ from src.Game import Game
 from src.Grid import Grid
 from src.UI.No_UI import No_UI
 
+
 def confidence_interval(data, alpha=0.05):
     """
     Compute the alpha confidence interval of the mean for a given dataset.
@@ -21,7 +22,7 @@ def confidence_interval(data, alpha=0.05):
     std_err = np.std(data, ddof=1) / np.sqrt(n)  # Standard error of the mean
 
     # Compute the t critical value
-    t_crit = stats.t.ppf(1 - alpha/2, df=n-1)
+    t_crit = stats.t.ppf(1 - alpha / 2, df=n - 1)
 
     # Compute the margin of error
     margin_of_error = t_crit * std_err
@@ -32,7 +33,8 @@ def confidence_interval(data, alpha=0.05):
 
     return ci_lower, ci_upper
 
-def winrate(n_game, mine_percent, grid_size, bot, conf_interval: None|float=None):
+
+def winrate(n_game, mine_percent, grid_size, bot, conf_interval: None | float = None):
     results = []
     for i in range(n_game):
         grid = Grid(grid_size, grid_size, mine_percent)

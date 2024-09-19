@@ -11,7 +11,7 @@ SYMETRIES = [
     lambda t: torch.flip(t, dims=(-1,)),
     lambda t: torch.flip(t, dims=(-2,)),
     lambda t: torch.flip(torch.rot90(t, k=-1, dims=(-2, -1)), dims=(-1,)),
-    lambda t: torch.flip(torch.rot90(t, k=1, dims=(-2, -1)), dims=(-1,))
+    lambda t: torch.flip(torch.rot90(t, k=1, dims=(-2, -1)), dims=(-1,)),
 ]
 
 I_SYMETRIES = [
@@ -22,7 +22,7 @@ I_SYMETRIES = [
     lambda t: torch.flip(t, dims=(-1,)),
     lambda t: torch.flip(t, dims=(-2,)),
     lambda t: torch.flip(torch.rot90(t, k=-1, dims=(-2, -1)), dims=(-1,)),
-    lambda t: torch.flip(torch.rot90(t, k=1, dims=(-2, -1)), dims=(-1,))
+    lambda t: torch.flip(torch.rot90(t, k=1, dims=(-2, -1)), dims=(-1,)),
 ]
 
 
@@ -54,7 +54,9 @@ class Symetry_Inveriant_Conv2D(Module):
 
         # Inverse the symetries
         # [n, 8, c, h, w]
-        x = torch.stack([f(t[:, 0]) for t, f in zip(torch.split(x, 1, dim=-4), I_SYMETRIES)], -4)
+        x = torch.stack(
+            [f(t[:, 0]) for t, f in zip(torch.split(x, 1, dim=-4), I_SYMETRIES)], -4
+        )
 
         # Agregate
         # [n, c, h, w]

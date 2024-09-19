@@ -1,23 +1,21 @@
-
-
 from typing import Any
 from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import Dataset
-
-
 from torch.nn import Module
 from torch.optim import Optimizer
 from torch.utils.data import Dataset, DataLoader
 
+
 class Abstract_Regression_Trainer:
-    def __init__(self, 
-                 model: Module, 
-                 optimizer: Optimizer, 
-                 batch_size: int = 32, 
-                 device: str = 'cuda',
-                 training_epoch: int = 10,
-                 ) -> None:
+    def __init__(
+        self,
+        model: Module,
+        optimizer: Optimizer,
+        batch_size: int = 32,
+        device: str = "cuda",
+        training_epoch: int = 10,
+    ) -> None:
         self.model = model
         self.optimizer = optimizer
         self.device = device
@@ -35,11 +33,11 @@ class Abstract_Regression_Trainer:
 
             if self.early_stoping():
                 return
-            
+
     def entry_to_device(self, entry: Any):
         return entry.to(self.device)
-    
-    def change_device_loader(self, loader: DataLoader)!
+
+    def change_device_loader(self, loader: DataLoader):
         for entry in loader:
             yield self.entry_to_device(entry)
 
@@ -53,7 +51,3 @@ class Abstract_Regression_Trainer:
             self.optimizer.step()
 
             self.train
-    
-    def comput_loss(self)
-
-
