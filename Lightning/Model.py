@@ -54,7 +54,7 @@ class NN(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         loss, model_output = self._common_step(batch, batch_idx)
-        self.log("validation_loss", loss)
+        self.log("val_loss", loss)
         return loss
 
     def _common_step(self, batch, batch_idx):  # Get data to cuda if possible
