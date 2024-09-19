@@ -11,8 +11,6 @@ from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
 from torch.utils.data import random_split
 from importlib import reload
-from Lightning.Model import NN
-from Lightning.Dataset import Data_Module
 from models.Symetry_Invariant_Conv2D import Symetry_Inveriant_Conv2D
 from src.Game import Game
 from src.Players.Minesweeper_bot import Minesweeper_bot
@@ -25,26 +23,17 @@ from src.UI.Command_Line_UI import Command_Line_UI
 import src.Players.Minesweeper_bot as mb
 import pytorch_lightning as pl
 
-import Lightning.config as cfg
+# Set device cuda for GPU if it's available otherwise run on the CPU
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+TRAINER_DEVICES = [0]
 
-
-# Initialize network
-model = NN(cfg.ALPHA)
-dm = Data_Module(
-    cfg.TENSOR_DATA_FILE,
-    cfg.BATCH_SIZE,
-    cfg.VAL_SIZE,
-)
-trainer = pl.Trainer(
-    accelerator=cfg.ACCELERATOR, # 'gpu' or 'tpu'
-    devices=cfg.TRAINER_DEVICES, # Devices to use
-    min_epochs=cfg.MIN_EPOCHS, 
-    max_epochs=cfg.MAX_EPOCHS, 
-    precision=cfg.PRECISION,
-    # overfit_batches=1, # Debug : Try to overfit the model to one batch
-    fast_dev_run=True, # Debug : Smaller loops
-)
-trainer.fit(model, dm)
-trainer.validate(model, dm)
-
+# Hyperparameters
+BATCH_SIZE = 128
+ALPHA = 0.95 # Part of loss on the Unknown boundaries
+VAL_SIZE = 0.1
+TENSOR_DATA_FILE = 'dataset/lose_bot/12x12_23253.pt'
+ACCELERATOR = 'gpu'
+PRECISION=16
+MIN_EPOCHS=1 
+MAX_EPOCHS=5 
 
