@@ -1,11 +1,19 @@
+import io
+from matplotlib import pyplot as plt
+from matplotlib.axes import Axes
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+from matplotlib.figure import Figure
 import torch
 from torchmetrics import Accuracy
 from torch import nn, optim
+import torchvision.transforms.functional
 from Lightning.Loss import Boundary_KL_Loss
 from models.Symetry_Invariant_Conv2D import Symetry_Inveriant_Conv2D
 from models.utils import valid_argmax2D
 from models.Game_Tensor_Interface import Game_Tensor_Interface
 import pytorch_lightning as pl
+import torchvision
+from PIL import Image
 
 
 class NN(pl.LightningModule):
@@ -42,10 +50,37 @@ class NN(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         loss, model_output = self._common_step(batch, batch_idx)
 
-        grid_tensor, mines = batch
+        if batch_idx % 100 == 0:
+            self.log_grid(model_output, batch, batch_idx)
 
         self.log_dict({"train_loss": loss}, on_step=False, on_epoch=True, prog_bar=True)
         return loss
+    
+    def log_grid(self, model_output, batch, batch_idx):
+        grid_tensor, mines = batch
+
+        # Grid logging
+        img = Game_Tensor_Interface.view_grid_tensor(grid_tensor[0].detach().to('cpu'), mines[0].detach().to('cpu'), view_grid_kwargs={'close_plot':True})
+        self.logger.experiment.add_image('input_board_sample', torchvision.transforms.functional.to_tensor(img), self.global_step)
+
+        # Activation
+        fig, ax = plt.subplots(1, 1, figsize=(5, 5))
+        fig: Figure
+        ax: Axes
+
+        proba_plot = ax.imshow(torch.exp(model_output[0, 1].detach().to('cpu')), vmin=0, vmax=1)
+        fig.colorbar(proba_plot, ax=ax, label='Mine probability')
+
+        canvas = FigureCanvas(fig)
+        buf = io.BytesIO()
+        canvas.print_png(buf)
+        buf.seek(0)
+        img = Image.open(buf)
+
+        plt.close(fig)
+        self.logger.experiment.add_image('activation_sample', torchvision.transforms.functional.to_tensor(img), self.global_step)
+
+        return
 
     def test_step(self, batch, batch_idx):
         loss, model_output = self._common_step(batch, batch_idx)

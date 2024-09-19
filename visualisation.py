@@ -1,17 +1,17 @@
-from matplotlib.axes import Axes
-from matplotlib.figure import Figure
-from numpy import ndarray
-from matplotlib.colors import ListedColormap
 import numpy as np
 import matplotlib.pyplot as plt
-
+from matplotlib.colors import ListedColormap
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+from PIL import Image
+import io
 
 def view_grid(
-    grid_values: ndarray,
-    grid_view: ndarray | None = None,
-    mines: ndarray | None = None,
-    fig: Figure = None,
-    ax: Axes = None,
+    grid_values: np.ndarray,
+    grid_view: np.ndarray | None = None,
+    mines: np.ndarray | None = None,
+    fig: plt.Figure = None,
+    ax: plt.Axes = None,
+    close_plot:bool=False,
 ):
     if grid_view is None:
         grid_view = np.ones_like(grid_values).astype(np.bool_)
@@ -53,5 +53,18 @@ def view_grid(
 
     cmap_view = ListedColormap(["lightgray", "darkgray", "red", "darkred"])
     plot_array = np.zeros_like(grid_values) + 1 * (~grid_view) + 2 * mines
-    # plot_array = plot_array*(~mines) + mines*3
     ax.imshow(plot_array, cmap=cmap_view, vmin=0, vmax=3)
+
+    # Convert to PIL image
+    canvas = FigureCanvas(fig)
+    buf = io.BytesIO()
+    canvas.print_png(buf)
+    buf.seek(0)
+    img = Image.open(buf)
+
+    if close_plot:
+        # Close the figure to avoid display in Jupyter notebooks or memory leakage
+        plt.close(fig)
+
+    return img
+

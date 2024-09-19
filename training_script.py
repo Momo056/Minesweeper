@@ -5,10 +5,11 @@ import pytorch_lightning as pl
 
 import Lightning.config as cfg
 from pytorch_lightning.callbacks import EarlyStopping
-
+from pytorch_lightning.loggers import TensorBoardLogger
 
 if __name__ == "__main__":
     # Initialize network
+    logger = TensorBoardLogger('tb_logs', name='tutorial')
     model = NN(cfg.ALPHA)
     dm = Data_Module(
         cfg.TENSOR_DATA_FILE,
@@ -27,6 +28,7 @@ if __name__ == "__main__":
             EarlyStopping(monitor="val_loss", patience=3),
             My_Printing_Callback(),
         ],
+        logger=logger,
     )
     trainer.fit(model, dm)
     trainer.validate(model, dm)
