@@ -51,7 +51,10 @@ class NN(pl.LightningModule):
         loss, model_output = self._common_step(batch, batch_idx)
 
         if batch_idx % 100 == 0:
-            self.log_grid(model_output, batch, batch_idx)
+            try:
+                self.log_grid(model_output, batch, batch_idx)
+            except ValueError as e:
+                self.log('plt_error', str(e))
 
         self.log_dict({"train_loss": loss}, on_step=False, on_epoch=True, prog_bar=True)
         return loss
