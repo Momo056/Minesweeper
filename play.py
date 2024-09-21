@@ -4,7 +4,6 @@ from tkinter import Tk
 from numpy import ndarray
 import numpy as np
 from src.Players.No_Action_Player import No_Action_Player
-from models.Game_Tensor_Interface import Game_Tensor_Interface
 from src.UI.GUI_Hint_Map import GUI_Hint_Map
 from src.Players import Player_Interface
 from src.Players.Minesweeper_bot import Minesweeper_bot
@@ -54,14 +53,15 @@ def parse_arguments():
 
 def get_probability_model(model_type: str, model_parameters: str) -> Player_Interface:
     print("Loading torch")
-    from models.Model_Dict import MODEL_PROVIDER_DICT
+    from Lightning.Model_provider import MODEL_PROVIDER_DICT
     import torch
+    from models.Game_Tensor_Interface import Game_Tensor_Interface
 
     print("torch loaded")
 
     model = MODEL_PROVIDER_DICT[model_type]()
-    state_dict = torch.load(model_parameters)
-    model.load_state_dict(state_dict)
+    checkpoint = torch.load(model_parameters)
+    model.load_state_dict(checkpoint['state_dict'])
     model.to("cuda")
     tensor_interface = Game_Tensor_Interface()
 

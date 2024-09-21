@@ -2,3 +2,4 @@ __pycache__
 lightning_logs/
 tb_logs/
 checkpoints/
+dataset/

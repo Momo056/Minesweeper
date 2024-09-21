@@ -43,7 +43,7 @@ if __name__ == "__main__":
         # overfit_batches=1, # Debug : Try to overfit the model to one batch
         # fast_dev_run=True,  # Debug : Smaller loops,
         callbacks=[
-            EarlyStopping(monitor="val_loss", patience=3),
+            EarlyStopping(monitor="val_loss", patience=cfg.PATIENCE),
             checkpoint_callback,  # Add the checkpoint callback here
             My_Printing_Callback(),
         ],
