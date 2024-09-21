@@ -4,30 +4,31 @@ import os
 import time
 
 from tqdm import tqdm
+from itertools import product
+
 from src.Game import Game
 from src.Players.Minesweeper_bot import Minesweeper_bot
 from src.Grid import Grid
 
 import numpy as np
-import numpy as np
-
 import torch
 
 from models.Game_Tensor_Interface import Game_Tensor_Interface
 
-def gather_data(n_game: int, grid_size: int, mine_percent: int, save_path: str):
+
+def gather_data(n_game: int, grid_size: int, mine_percent: float, save_path: str):
     tensor_list = []
     mines_list = []
     tensor_interface = Game_Tensor_Interface()
 
     for i in range(n_game):
-        # Grid initialisation
+        # Grid initialization
         grid = Grid(grid_size, grid_size, mine_percent)
         game = Game(grid)
         bot = Minesweeper_bot()
         game.action(*bot.action(*game.visible_grid()))
 
-        # Play until we are about to do a mistake (or we win)
+        # Play until we are about to make a mistake (or win)
         next_action = bot.action(*game.visible_grid())
         while not grid.mines[*next_action] and not game.is_ended():
             game.action(*next_action)
@@ -50,59 +51,73 @@ def gather_data_one_arg(x):
 
 
 def main():
-    parser = ArgumentParser(description="Générer des plateaux de Minesweeper pour entraîner un modèle.")
+    parser = ArgumentParser(description="Generate Minesweeper boards for training a model.")
 
-    # Ajout des arguments
-    parser.add_argument('--grid_size', type=int, default=12, help="Taille de la grille (par défaut: 12)")
-    parser.add_argument('--mine_percent', type=int, default=22, help="Pourcentage de mines dans la grille, sous forme entière (par défaut: 22 pour 22%)")
-    parser.add_argument('--n_game', type=int, default=10000, help="Nombre de parties à générer (par défaut: 10000)")
-    parser.add_argument('--batch_size', type=int, default=1000, help="Nombre de parties par batch (par défaut: 1000)")
-    parser.add_argument('--cpu', type=int, default=4, help="Nombre de CPU utilisés")
+    # Add arguments
+    parser.add_argument('--grid_sizes', type=int, nargs='+', default=[12], help="List of grid sizes (default: [12])")
+    parser.add_argument('--mine_percents', type=int, nargs='+', default=[22], help="List of mine percentages (default: [22])")
+    parser.add_argument('--n_game', type=int, default=10000, help="Number of games to generate (default: 10000)")
+    parser.add_argument('--batch_size', type=int, default=1000, help="Number of games per batch (default: 1000)")
+    parser.add_argument('--cpu', type=int, default=4, help="Number of CPUs to use")
 
     args = parser.parse_args()
 
-    # Assignation des valeurs des arguments
-    grid_size = args.grid_size
-    mine_percent = args.mine_percent / 100.0  # Conversion en pourcentage réel
+    grid_sizes = args.grid_sizes
+    mine_percents = [mp / 100.0 for mp in args.mine_percents]  # Convert to actual percentages
     n_game = args.n_game
     batch_size = args.batch_size
 
-    # Placeholder for the batched data
-    dataset_name = f'{grid_size}x{grid_size}_m{args.mine_percent}'
-    dataset_path = os.path.join('dataset', dataset_name)
-    if os.path.exists(dataset_path):
-        index_offset = len(os.listdir(dataset_path))
-    else:
-        index_offset = 0
-        os.makedirs(dataset_path, exist_ok=False)
+    # Create the dataset folder structure for each combination
+    base_dataset_path = 'dataset'
+    combinations = list(product(grid_sizes, mine_percents))
+    
+    input_values = []
+    
+    # Create folder structure and gather input values for each combination
+    for grid_size, mine_percent in combinations:
+        dataset_name = f'{grid_size}x{grid_size}_m{int(mine_percent * 100)}'
+        dataset_path = os.path.join(base_dataset_path, dataset_name)
 
-    # Show the number of CPUs available
-    num_cpus = os.cpu_count()
-    print(f"Number of CPUs available: {num_cpus}")
+        if os.path.exists(dataset_path):
+            index_offset = len(os.listdir(dataset_path))
+        else:
+            index_offset = 0
+            os.makedirs(dataset_path, exist_ok=False)
 
-    # Calculate the number of batches
-    num_batches = n_game // batch_size
-    remainder = n_game % batch_size
+        # Calculate the number of batches
+        num_batches = n_game // batch_size
+        remainder = n_game % batch_size
 
-    # Create the list of arguments for each batch
-    input_values = [(batch_size, grid_size, mine_percent, os.path.join(dataset_path, f"batch_{i+index_offset}.pt"))
-                    for i in range(num_batches)]
+        # Create the list of arguments for each batch for this combination
+        for i in range(num_batches):
+            input_values.append((batch_size, grid_size, mine_percent, os.path.join(dataset_path, f"batch_{i+index_offset}.pt")))
 
-    # Add the remainder as an extra batch if necessary
-    if remainder > 0:
-        input_values.append((remainder, grid_size, mine_percent, os.path.join(dataset_path, f"batch_{num_batches}.pt")))
+        # Add the remainder as an extra batch if necessary
+        if remainder > 0:
+            input_values.append((remainder, grid_size, mine_percent, os.path.join(dataset_path, f"batch_{num_batches}.pt")))
+
+    # Stratify the batches by round-robin scheduling
+    stratified_batches = []
+    max_batches = max(n_game // batch_size + (1 if n_game % batch_size > 0 else 0) for grid_size, mine_percent in combinations)
+
+    for i in range(max_batches):
+        for j in range(i, len(input_values), max_batches):
+            stratified_batches.append(input_values[j])
 
     # Run the function in parallel using multiprocessing
     start_t = time.perf_counter()
+    num_cpus = os.cpu_count()
+    print(f"Number of CPUs available: {num_cpus}")
+    
     with multiprocessing.Pool(min(num_cpus, args.cpu)) as pool:
         # Use tqdm to display a progress bar
-        for _ in tqdm(pool.imap_unordered(gather_data_one_arg, input_values), total=len(input_values)):
+        for _ in tqdm(pool.imap_unordered(gather_data_one_arg, stratified_batches), total=len(stratified_batches)):
             pass
     end_t = time.perf_counter()
 
     print(f"Done in {(end_t - start_t):.2f} seconds")
 
+
+
 if __name__ == "__main__":
     main()
-
-
