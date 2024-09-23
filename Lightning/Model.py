@@ -60,7 +60,7 @@ class NN(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         loss, model_output = self._common_step(batch, batch_idx)
 
-        self.log_dict({"train_loss": loss}, on_step=False, on_epoch=True, prog_bar=True)
+        self.log_dict({"train/loss": loss}, on_step=False, on_epoch=True, prog_bar=True)
         return loss
     
     def validation_step(self, batch, batch_idx):
