@@ -75,6 +75,7 @@ if __name__ == "__main__":
 
     # Log the number of parameters using TensorBoardLogger
     logger.experiment.add_text("Model/Number of Parameters", f"{num_params:,}", 0)
+    logger.experiment.add_text("Model/Architecture", str(model), 0)
 
     
     # Initialize the data module
@@ -113,6 +114,14 @@ if __name__ == "__main__":
     # Start training
     trainer.fit(model, dm)
 
+    # Load the best model based on validation loss
+    best_model_path = trainer.checkpoint_callback.best_model_path
+
+    if best_model_path:
+        print(f"Loading best model from {best_model_path}")
+        model = NN.load_from_checkpoint(best_model_path)
+    else:
+        print("Best model not found. Using the current model.")
+
     # Measurments
-    trainer.validate(model, dm)
     trainer.test(model, dm)
