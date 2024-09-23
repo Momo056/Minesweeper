@@ -39,7 +39,7 @@ if __name__ == "__main__":
     ## Git logging
     # Get the current git commit ID
     commit_id = subprocess.check_output(["git", "rev-parse", "HEAD"]).strip().decode()
-    
+
     # Check if there are uncommitted changes
     git_status = subprocess.check_output(["git", "status", "--porcelain"]).strip().decode()
 
@@ -69,6 +69,13 @@ if __name__ == "__main__":
         kernel_size=cfg.KERNEL_SIZE,
         batch_norm_period=cfg.BATCH_NORM_PERIOD
     )
+
+    # Calculate the total number of trainable parameters
+    num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+    # Log the number of parameters using TensorBoardLogger
+    logger.experiment.add_text("Model/Number of Parameters", f"{num_params:,}", 0)
+
     
     # Initialize the data module
     dm = Tensor_Dir_Dataset(
