@@ -3,3 +3,4 @@ lightning_logs/
 tb_logs/
 checkpoints/
 dataset/
+training_runs/
