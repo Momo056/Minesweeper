@@ -120,7 +120,7 @@ class NN(pl.LightningModule):
     
     def log_grid(self, model_output, batch, batch_idx):
         grid_tensor, mines = batch
-        plot_idx = batch_idx % len(batch)
+        plot_idx = self.current_epoch % len(batch)
 
         # Grid logging
         state_img = Game_Tensor_Interface.view_grid_tensor(grid_tensor[plot_idx].detach().to('cpu'), mines[plot_idx].detach().to('cpu'), view_grid_kwargs={'close_plot':True})
