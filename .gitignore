@@ -4,3 +4,4 @@ tb_logs/
 checkpoints/
 dataset/
 training_runs/
+debug.py
