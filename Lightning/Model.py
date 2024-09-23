@@ -39,7 +39,7 @@ class NN(pl.LightningModule):
             sub_blocks = []
             for l in range(layer_per_block):
                 first_layer = i_block == 0 and l == 0
-                last_layer = i_block != n_sym_block - 1 and l != layer_per_block - 1
+                last_layer = i_block == n_sym_block - 1 and l == layer_per_block - 1
 
                 # Sub block construction
                 sub_blocks.append(nn.Conv2d(
