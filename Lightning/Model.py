@@ -19,34 +19,47 @@ from PIL import Image
 
 
 class NN(pl.LightningModule):
-    def __init__(self, alpha:float, out_of_boundary_treshold:float=0.5, *args, **kwargs) -> None:
+    def __init__(self, alpha: float, out_of_boundary_treshold: float = 0.5, 
+                 n_sym_block: int = 3, layer_per_block: int = 2, latent_dim: int = 64, 
+                 kernel_size: int = 3, batch_norm_period: int = 2, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.model = nn.Sequential(
-            Symetry_Inveriant_Conv2D(
-                nn.Sequential(
-                    nn.Conv2d(10, 16, 9, padding="same", padding_mode="zeros"),
-                    nn.ELU(),
-                )
-            ),
-            Symetry_Inveriant_Conv2D(
-                nn.Sequential(
-                    nn.Conv2d(16, 16, 9, padding="same", padding_mode="zeros"),
-                    nn.ELU(),
-                )
-            ),
-            Symetry_Inveriant_Conv2D(
-                nn.Sequential(
-                    nn.Conv2d(16, 2, 1, padding="same", padding_mode="zeros"),
-                    nn.ELU(),
-                )
-            ),
-            nn.LogSoftmax(-3),
-        )
         self.compute_loss = Boundary_KL_Loss(alpha)
         self.game_tensor_interface = Game_Tensor_Interface()
         self.accuracy = Accuracy("binary")
         self.out_of_boundary_treshold = out_of_boundary_treshold
         self.custom_accuracy = Accumulator_Accuracy()
+
+        # Call the build_model method with the provided parameters
+        self.build_model(n_sym_block, layer_per_block, latent_dim, kernel_size, batch_norm_period)
+
+    def build_model(self, n_sym_block: int, layer_per_block: int, latent_dim: int, kernel_size: int, batch_norm_period: int):
+        sym_blocks = []
+        for i_block in range(n_sym_block):
+            # Symmetric block construction
+            sub_blocks = []
+            for l in range(layer_per_block):
+                first_layer = i_block == 0 and l == 0
+                last_layer = i_block != n_sym_block - 1 and l != layer_per_block - 1
+
+                # Sub block construction
+                sub_blocks.append(nn.Conv2d(
+                    10 if first_layer else latent_dim, 
+                    2 if last_layer else latent_dim, 
+                    kernel_size, 
+                    padding="same", 
+                    padding_mode="zeros"
+                ))
+
+                if batch_norm_period > 0 and l % batch_norm_period == 0:
+                    sub_blocks.append(nn.BatchNorm2d(latent_dim))
+                
+                if not last_layer:  # Add activation only for intermediate layers
+                    sub_blocks.append(nn.ReLU())
+            
+            sym_blocks.append(Symetry_Inveriant_Conv2D(nn.Sequential(*sub_blocks)))
+        
+        self.model = nn.Sequential(*sym_blocks, nn.LogSoftmax(-3))
+
 
     def forward(self, x):
         return self.model(x)
