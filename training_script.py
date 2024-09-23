@@ -39,11 +39,7 @@ if __name__ == "__main__":
     ## Git logging
     # Get the current git commit ID
     commit_id = subprocess.check_output(["git", "rev-parse", "HEAD"]).strip().decode()
-
-    # Write the commit ID to a file in the base directory
-    with open(os.path.join(base_dir, "git_commit.txt"), "w") as f:
-        f.write(f"Git Commit ID: {commit_id}\n")
-
+    
     # Check if there are uncommitted changes
     git_status = subprocess.check_output(["git", "status", "--porcelain"]).strip().decode()
 

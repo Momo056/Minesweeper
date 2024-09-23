@@ -50,7 +50,7 @@ class NN(pl.LightningModule):
                     padding_mode="zeros"
                 ))
 
-                if batch_norm_period > 0 and l % batch_norm_period == 0:
+                if batch_norm_period > 0 and l % batch_norm_period == 0 and not last_layer:
                     sub_blocks.append(nn.BatchNorm2d(latent_dim))
                 
                 if not last_layer:  # Add activation only for intermediate layers
