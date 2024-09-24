@@ -21,7 +21,7 @@ from PIL import Image
 class NN(pl.LightningModule):
     def __init__(self, alpha: float=0.95, out_of_boundary_treshold: float = 0.5, 
                  n_sym_block: int = 3, layer_per_block: int = 2, latent_dim: int = 64, 
-                 kernel_size: int = 3, batch_norm_period: int = 2, *args, **kwargs) -> None:
+                 kernel_size: int = 3, batch_norm_period: int = 2, lr: float = 1e-3, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.compute_loss = Boundary_KL_Loss(alpha)
         self.game_tensor_interface = Game_Tensor_Interface()
@@ -30,6 +30,7 @@ class NN(pl.LightningModule):
 
         # Call the build_model method with the provided parameters
         self.build_model(n_sym_block, layer_per_block, latent_dim, kernel_size, batch_norm_period)
+        self.lr = lr
 
     def build_model(self, n_sym_block: int, layer_per_block: int, latent_dim: int, kernel_size: int, batch_norm_period: int):
         sym_blocks = []
@@ -207,4 +208,4 @@ class NN(pl.LightningModule):
 
 
     def configure_optimizers(self) -> optim.Optimizer:
-        return optim.Adam(self.parameters())
+        return optim.Adam(self.parameters(), lr=self.lr)

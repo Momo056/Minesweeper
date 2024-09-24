@@ -76,7 +76,8 @@ if __name__ == "__main__":
         layer_per_block=cfg.LAYER_PER_BLOCK,
         latent_dim=cfg.LATENT_DIM,
         kernel_size=cfg.KERNEL_SIZE,
-        batch_norm_period=cfg.BATCH_NORM_PERIOD
+        batch_norm_period=cfg.BATCH_NORM_PERIOD,
+        lr=cfg.LR,
     )
 
     # Calculate the total number of trainable parameters
