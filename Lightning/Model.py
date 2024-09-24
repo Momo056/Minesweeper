@@ -19,13 +19,12 @@ from PIL import Image
 
 
 class NN(pl.LightningModule):
-    def __init__(self, alpha: float, out_of_boundary_treshold: float = 0.5, 
+    def __init__(self, alpha: float=0.95, out_of_boundary_treshold: float = 0.5, 
                  n_sym_block: int = 3, layer_per_block: int = 2, latent_dim: int = 64, 
                  kernel_size: int = 3, batch_norm_period: int = 2, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.compute_loss = Boundary_KL_Loss(alpha)
         self.game_tensor_interface = Game_Tensor_Interface()
-        self.accuracy = Accuracy("binary")
         self.out_of_boundary_treshold = out_of_boundary_treshold
         self.custom_accuracy = Accumulator_Accuracy()
 
@@ -96,7 +95,7 @@ class NN(pl.LightningModule):
             try:
                 self.log_grid(model_output, batch, batch_idx)
             except ValueError as e:
-                self.log('plt_error', str(e))
+                self.logger.experiment.add_text("plt/errors", str(e), self.global_step)
             
         return loss
 
@@ -145,6 +144,7 @@ class NN(pl.LightningModule):
         log_img = self.collage_images(state_img, activation_img)
 
         # Log
+        self.logger.experiment.add_text('debug_log_grid_idx', f'{self.current_epoch=} | {len(batch)=} | {plot_idx=}', self.global_step)
         self.logger.experiment.add_image('state_activation_sample', torchvision.transforms.functional.to_tensor(log_img), self.global_step)
 
         return

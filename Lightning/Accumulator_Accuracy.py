@@ -12,5 +12,5 @@ class Accumulator_Accuracy(Metric):
         self.correct += success
         self.total += total
 
-    def compute(self):
+    def compute(self) -> float:
         return self.correct.float() / self.total

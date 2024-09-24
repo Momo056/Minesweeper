@@ -1,12 +1,13 @@
+from argparse import ArgumentParser
+import json
 import shutil
 import subprocess
-from Lightning.Callbacks import My_Printing_Callback
+from Lightning.Configuration import Configuration
 from Lightning.Model import NN
 from Lightning.Dataset import Data_Module
 import pytorch_lightning as pl
 
 from Lightning.Tensor_Dir_Dataset import Tensor_Dir_Dataset
-import Lightning.config as cfg
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.profilers import PyTorchProfiler
@@ -15,6 +16,15 @@ import os
 from datetime import datetime
 
 if __name__ == "__main__":
+    parser = ArgumentParser()
+    parser.add_argument('--config_file', default='Lightning/config.cfg')
+    parser.add_argument('--run_dir_container', default='training_runs')
+    parser.add_argument('--output_file', default=None)
+    
+    args = parser.parse_args()
+
+    cfg = Configuration(args.config_file)
+
     # Get the current date and time
     current_time = datetime.now().strftime("%Y-%m-%d--%H-%M-%S")
 
@@ -22,7 +32,7 @@ if __name__ == "__main__":
     run_name = f"{current_time}_model-blocks-{cfg.N_SYM_BLOCK}_layers-{cfg.LAYER_PER_BLOCK}_latent-{cfg.LATENT_DIM}"
 
     # Define the base directory for saving logs and checkpoints
-    base_dir = os.path.join("training_runs", run_name)
+    base_dir = os.path.join(args.run_dir_container, run_name)
 
     # Create the directories if they don't exist
     os.makedirs(base_dir, exist_ok=True)
@@ -32,9 +42,8 @@ if __name__ == "__main__":
 
     ## Log config
     # Copy the config file to the base directory
-    config_src = os.path.join("Lightning", "config.py")
-    config_dst = os.path.join(base_dir, "config.py")
-    shutil.copyfile(config_src, config_dst)
+    config_dst = os.path.join(base_dir, "config.cfg")
+    cfg.save_to(config_dst)
 
     ## Git logging
     # Get the current git commit ID
@@ -124,4 +133,15 @@ if __name__ == "__main__":
         print("Best model not found. Using the current model.")
 
     # Measurments
-    trainer.test(model, dm)
+    test_metrics,  = trainer.test(model, dm)
+
+    with open(args.output_file, 'w') as file:
+        json.dump(
+            {
+                'log_directory':base_dir,
+                **test_metrics,
+            },
+            file,
+            indent=4,
+            sort_keys=True,
+        )
