@@ -140,16 +140,17 @@ class GUI_Hint_Map:
                 row_buttons.append(button)
             self.probability_buttons.append(row_buttons)
 
-        self.update_probability_grid(game)
+        self.update_all_grids(game)
 
     def on_button_click(self, game: Game, row: int, col: int):
         game.action(row, col)
-        self.update_grid(game)
-        self.update_hint_grid(game)
-        self.update_probability_grid(game)
+        self.update_all_grids(game)
 
     def on_right_click(self, game: Game, row: int, col: int):
         self.flags[row, col] = not self.flags[row, col]
+        self.update_all_grids(game)
+
+    def update_all_grids(self, game: Game):
         self.update_grid(game)
         self.update_hint_grid(game)
         self.update_probability_grid(game)
