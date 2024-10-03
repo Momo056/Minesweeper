@@ -9,7 +9,7 @@ class GUI_Hint_Map:
     def __init__(
         self,
         bot: Player_Interface,
-        map_provider: Callable[[np.ndarray, np.ndarray], np.ndarray],
+        map_provider: Callable[[np.ndarray, np.ndarray], np.ndarray] | None,
         master: tk.Tk | None = None,
     ):
         self.master = master if master is not None else tk.Tk()
@@ -180,31 +180,36 @@ class GUI_Hint_Map:
     def update_hint_grid(self, game: Game):
         if game.is_ended():
             return
-
         hints = self.calculate_best_moves(game)
-        for row in range(game.grid.grid_shape()[0]):
-            for col in range(game.grid.grid_shape()[1]):
-                button = self.hint_buttons[row][col]
 
-                if game.player_grid_view[row, col]:
-                    self.update_visible_button(button, int(game.grid.grid[row, col]))
-                else:
-                    self.update_hint_button(button, hints[row, col])
+        button_updater = lambda b, r, c : self.update_hint_button(b, hints[r, c])
+
+        self._update_abstract_grid(game, self.hint_buttons, button_updater)
 
     def update_probability_grid(self, game: Game):
-        probability_map = self.map_provider(*game.visible_grid())
+        if self.map_provider is None:
+            probability_map = None
+        else:
+            probability_map = self.map_provider(*game.visible_grid())
 
+        if probability_map is None:
+            button_updater = lambda b, r, c : self.update_probability_button(b, None)
+        else:
+            button_updater = lambda b, r, c : self.update_probability_button(b, probability_map[r, c])
+
+        self._update_abstract_grid(game, self.probability_buttons, button_updater)
+
+
+    def _update_abstract_grid(self, game: Game, button_matrix: list[list[tk.Button]], button_updater: Callable[[tk.Button, int, int], None]):
         for row in range(game.grid.grid_shape()[0]):
             for col in range(game.grid.grid_shape()[1]):
-                button = self.probability_buttons[row][col]
+                button = button_matrix[row][col]
 
                 if game.player_grid_view[row, col]:
                     self.update_visible_button(button, int(game.grid.grid[row, col]))
                 else:
-                    prob = (
-                        None if probability_map is None else probability_map[row, col]
-                    )
-                    self.update_probability_button(button, prob)
+                    # Injected code
+                    button_updater(button, row, col)
 
     def update_visible_button(self, button: tk.Button, value: int):
         text_button = str(value) if value != 0 else ""

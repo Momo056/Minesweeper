@@ -106,7 +106,7 @@ if __name__ == "__main__":
         map_provider = get_probability_model(args.model_type, args.model_parameters)
         gui = GUI_Hint_Map(minesweeper_bot, map_provider, master)
     else:
-        gui = GUI_Hint_Grid(minesweeper_bot, master)
+        gui = GUI_Hint_Map(minesweeper_bot, None, master)
     # minesweeper_bot = delegate_model
 
     # Main code

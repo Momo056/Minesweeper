@@ -1,5 +1,5 @@
 from math import prod
-from tkinter import Grid
+from src.Grid import Grid
 import numpy as np
 
 
