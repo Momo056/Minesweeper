@@ -1,3 +1,4 @@
+from math import prod
 import tkinter as tk
 from typing import Any, Callable
 import numpy as np
@@ -36,6 +37,9 @@ class GUI_Hint_Map:
         return game.result()
 
     def create_widgets(self, game: Game):
+        # Centering configuration: allow expansion on left and right of the main frame
+        self.master.grid_columnconfigure(0, weight=1)
+
         # Create a frame to contain all three grids side by side
         self.main_frame = tk.Frame(self.master)
         self.main_frame.grid(row=0, column=0, padx=10, pady=10)
@@ -60,7 +64,7 @@ class GUI_Hint_Map:
             relief=tk.SUNKEN,
             anchor=tk.W,
         )
-        self.status_bar.grid(row=1, column=0, sticky="we")
+        self.status_bar.grid(row=3, column=0, sticky="we")
 
         # Add new button for playing generated action
         self.generated_action_button = tk.Button(
@@ -69,6 +73,14 @@ class GUI_Hint_Map:
             command=lambda: self.play_generated_action(game),
         )
         self.generated_action_button.grid(row=2, column=0, pady=10)
+
+        # Ensure the status bar sticks to the bottom by configuring rows and columns
+        self.master.grid_rowconfigure(2, weight=1)  # Make the last row expand
+        self.master.grid_rowconfigure(3, weight=0)  # Ensure extra space is allocated above status bar
+
+        # Maximize the window on startup
+        self.master.state('zoomed')
+        self.master.focus_force()
 
     def play_generated_action(self, game: Game):
         if self.generated_action is not None:
@@ -128,7 +140,10 @@ class GUI_Hint_Map:
         self.update_all_grids(game)
         
     def update_status_bar(self, game: Game):
-        self.status_bar.config(text=f"Total number of mines: {game.grid.n_bomb} ({int(np.sum(self.flags))} flags)")
+        n_flag = int(np.sum(np.logical_and(self.flags, ~game.player_grid_view)))
+        n_covered = int(np.sum(1-game.player_grid_view))
+        n_unknown = n_covered - n_flag
+        self.status_bar.config(text=f"Total number of mines: {game.grid.n_bomb} | {n_flag} flags | {n_unknown} unknown boxes")
 
     def update_all_grids(self, game: Game):
         self.update_grid(game)
