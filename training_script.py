@@ -129,7 +129,8 @@ if __name__ == "__main__":
 
     if best_model_path:
         print(f"Loading best model from {best_model_path}")
-        model = NN.load_from_checkpoint(best_model_path)
+        checkpoint = torch.load(best_model_path)
+        model.load_state_dict(checkpoint['state_dict'])
     else:
         print("Best model not found. Using the current model.")
 

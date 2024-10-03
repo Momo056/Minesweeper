@@ -64,11 +64,13 @@ class Hyperparameter_Runner:
         else:
             subprocess.run(command)
         
+        return self.load(run_output_file)
+    
+    def load(self, run_output_file: str):
         with open(run_output_file, 'r') as file:
             result = json.load(file)
 
         return result
-
 
 
 

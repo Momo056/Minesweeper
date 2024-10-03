@@ -1,0 +1,79 @@
+# Device configuration
+DEVICE: 'cuda'
+TRAINER_DEVICES: 'auto'
+
+# Training parameters
+BATCH_SIZE: 128
+VAL_SIZE: 0.1
+TEST_SIZE: 0.1
+ACCELERATOR: "gpu"
+PRECISION: '16-mixed'
+MIN_EPOCHS: 1
+MAX_EPOCHS: 1000
+PATIENCE: 10
+
+# Hyperparameters for the NN model
+
+ALPHA:  # Part of loss on the Unknown boundaries
+  base: 0.90
+  range:
+    - 0.5
+    - 1.0
+  step: 0.2
+
+N_SYM_BLOCK:
+  base: 3
+  range:
+    - 1
+    - 4
+  step: 1
+
+LAYER_PER_BLOCK:
+  base: 2
+  range:
+    - 1
+    - 4
+  step: 1
+
+LATENT_DIM:
+  base: 64
+  set:
+    - 16
+    - 32
+    - 64
+    - 128
+
+KERNEL_SIZE:
+  base: 3
+  range:
+    - 3
+    - 9
+  step: 2
+
+BATCH_NORM_PERIOD:
+  base: 2
+  set:
+    - 1
+    - 2
+    - 4
+    - 0
+
+LR:
+  base: 1.0e-3
+  set:
+    - 1.0e-2
+    - 1.0e-3
+    - 1.0e-4
+
+INDEPENDANT_BATCHS:
+  - - N_SYM_BLOCK
+    - LAYER_PER_BLOCK
+    - LATENT_DIM
+    - KERNEL_SIZE
+  - - ALPHA
+  - - BATCH_NORM_PERIOD
+  - - LR
+
+
+# Dataset file
+TENSOR_DATA_FILE: "dataset/lose_bot/12x12_23253.pt"
