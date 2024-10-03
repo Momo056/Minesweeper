@@ -28,9 +28,7 @@ class GUI_Hint_Map:
         self.create_widgets(game)
 
         # Update grids of the minesweeper
-        self.initialize_grid(game)
-        self.initialize_hint_grid(game)
-        self.initialize_probability_grid(game)
+        self.initialize_all_grid(game)
 
         # Launch the app
         self.master.mainloop()
@@ -80,67 +78,46 @@ class GUI_Hint_Map:
         else:
             print("No action is generated yet.")
 
-    def initialize_grid(self, game: Game, frame: tk.Frame = None):
-        if frame is None:
-            frame = self.grid_frame
-
+    def initialize_all_grid(self, game: Game):
         # Initialize flag storage
         self.flags = np.zeros_like(game.player_grid_view)
 
-        # Create the buttons/grid for the player
-        self.buttons: list[list[tk.Button]] = []
-        for row in range(game.grid.grid_shape()[0]):
-            row_buttons = []
-            for col in range(game.grid.grid_shape()[1]):
-                button = tk.Button(
-                    frame,
-                    width=2,
-                    height=1,
-                    command=lambda r=row, c=col: self.on_button_click(game, r, c),
-                )
-                button.grid(row=row, column=col)
-                button.bind(
-                    "<Button-3>",
-                    lambda e, r=row, c=col: self.on_right_click(game, r, c),
-                )
-                row_buttons.append(button)
-            self.buttons.append(row_buttons)
-
-        self.status_bar.config(text=f"Total number of mines: {game.grid.n_bomb}")
-
-        self.update_grid(game)
-
-    def initialize_hint_grid(self, game: Game, frame: tk.Frame = None):
-        if frame is None:
-            frame = self.hint_grid_frame
-
-        # Create the buttons/grid for the hints
-        self.hint_buttons: list[list[tk.Button]] = []
-        for row in range(game.grid.grid_shape()[0]):
-            row_buttons = []
-            for col in range(game.grid.grid_shape()[1]):
-                button = tk.Button(frame, width=2, height=1, state=tk.DISABLED)
-                button.grid(row=row, column=col)
-                row_buttons.append(button)
-            self.hint_buttons.append(row_buttons)
-
-        self.update_hint_grid(game)
-
-    def initialize_probability_grid(self, game: Game, frame: tk.Frame = None):
-        if frame is None:
-            frame = self.probability_grid_frame
-
-        # Create the buttons/grid for the probabilities
-        self.probability_buttons: list[list[tk.Button]] = []
-        for row in range(game.grid.grid_shape()[0]):
-            row_buttons = []
-            for col in range(game.grid.grid_shape()[1]):
-                button = tk.Button(frame, width=2, height=1, state=tk.DISABLED)
-                button.grid(row=row, column=col)
-                row_buttons.append(button)
-            self.probability_buttons.append(row_buttons)
+        self.initialize_grid(game)
+        self.initialize_hint_grid(game)
+        self.initialize_probability_grid(game)
 
         self.update_all_grids(game)
+
+    def initialize_grid(self, game: Game):
+        def button_updater(button: tk.Button, row: int, col: int):
+            button.bind(
+                "<Button-3>",
+                lambda e, r=row, c=col: self.on_right_click(game, row, col),
+            )
+            button.config(command=lambda r=row, c=col: self.on_button_click(game, row, col))
+
+        self.buttons = self._initialize_abstract_grid(game, self.grid_frame, button_updater)
+
+    def initialize_hint_grid(self, game: Game):
+        self.hint_buttons = self._initialize_abstract_grid(game, self.hint_grid_frame, lambda *_:None)
+        
+    def initialize_probability_grid(self, game: Game):
+        self.probability_buttons = self._initialize_abstract_grid(game, self.probability_grid_frame, lambda *_:None)
+
+    def _initialize_abstract_grid(self, game: Game, frame: tk.Frame, button_updater: Callable[[tk.Button, int, int], None]):
+        # Create the buttons/grid for the probabilities
+        button_matrix: list[list[tk.Button]] = []
+        for row in range(game.grid.grid_shape()[0]):
+            row_buttons = []
+            for col in range(game.grid.grid_shape()[1]):
+                button = tk.Button(frame, width=2, height=1)
+                button.grid(row=row, column=col)
+                row_buttons.append(button)
+
+                button_updater(button, row, col) # Extern modification
+            button_matrix.append(row_buttons)
+
+        return button_matrix
 
     def on_button_click(self, game: Game, row: int, col: int):
         game.action(row, col)
@@ -149,11 +126,15 @@ class GUI_Hint_Map:
     def on_right_click(self, game: Game, row: int, col: int):
         self.flags[row, col] = not self.flags[row, col]
         self.update_all_grids(game)
+        
+    def update_status_bar(self, game: Game):
+        self.status_bar.config(text=f"Total number of mines: {game.grid.n_bomb} ({int(np.sum(self.flags))} flags)")
 
     def update_all_grids(self, game: Game):
         self.update_grid(game)
         self.update_hint_grid(game)
         self.update_probability_grid(game)
+        self.update_status_bar(game)
 
     def update_grid(self, game: Game):
         def button_updater(button: tk.Button, row: int, col: int):
