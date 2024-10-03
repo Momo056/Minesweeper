@@ -155,27 +155,17 @@ class GUI_Hint_Map:
         self.update_probability_grid(game)
 
     def update_grid(self, game: Game):
-        # Update the player's grid view
-        for row in range(game.grid.grid_shape()[0]):
-            for col in range(game.grid.grid_shape()[1]):
-                button = self.buttons[row][col]
+        def button_updater(button: tk.Button, row: int, col: int):
+            if self.flags[row, col]:
+                text_button = "F"
+                color = "yellow"
+            else:
+                text_button = ""
+                color = "gray"
 
-                if not game.player_grid_view[row, col]:
-                    if self.flags[row, col]:
-                        text_button = "F"
-                        color = "yellow"
-                    else:
-                        text_button = ""
-                        color = "gray"
-                elif game.grid.mines[row, col]:
-                    text_button = "M"
-                    color = "red"
-                else:
-                    value = int(game.grid.grid[row, col])
-                    text_button = str(value) if value != 0 else ""
-                    color = "lightgrey"
+            button.config(text=text_button, bg=color)
 
-                button.config(text=text_button, bg=color)
+        self._update_abstract_grid(game, self.buttons, button_updater)
 
     def update_hint_grid(self, game: Game):
         if game.is_ended():
@@ -206,14 +196,18 @@ class GUI_Hint_Map:
                 button = button_matrix[row][col]
 
                 if game.player_grid_view[row, col]:
-                    self.update_visible_button(button, int(game.grid.grid[row, col]))
+                    self.update_visible_button(button, int(game.grid.grid[row, col]), is_mine=game.grid.mines[row, col])
                 else:
                     # Injected code
                     button_updater(button, row, col)
 
-    def update_visible_button(self, button: tk.Button, value: int):
-        text_button = str(value) if value != 0 else ""
-        color = "lightgrey"
+    def update_visible_button(self, button: tk.Button, value: int, is_mine:bool = False):
+        if is_mine:
+            text_button = "M"
+            color = "red"
+        else:
+            text_button = str(value) if value != 0 else ""
+            color = "lightgrey"
         button.config(text=text_button, bg=color)
 
     def update_hint_button(self, button: tk.Button, hint_value: Any):
