@@ -2,6 +2,7 @@ from math import prod
 import tkinter as tk
 from typing import Any, Callable
 import numpy as np
+from src.Grid import Grid
 from src.Players.Player_Interface import Player_Interface
 from src.Game import Game
 
@@ -64,14 +65,20 @@ class GUI_Hint_Map:
         self.status_bar.grid(row=current_row, column=0, pady=10)
 
         current_row += 1
+        button_frame = tk.Frame(self.master)
+        button_frame.grid(row=current_row, column=0, pady=10, padx=20)
+        
         # Add new button for playing generated action
         self.generated_action_button = tk.Button(
-            self.master,
+            button_frame,
             text="Play bot action",
             font='Helvetica 16',
-            command=lambda: self.play_generated_action(game),
         )
-        self.generated_action_button.grid(row=current_row, column=0, pady=10)
+        self.generated_action_button.grid(row=0, column=0, pady=10, padx=20)
+
+        # New game button
+        self.new_game_button = tk.Button(button_frame, text='New game', font='Helvetica 16', command=self.start_new_game)
+        self.new_game_button.grid(row=0, column=1, pady=10)
 
         current_row += 1
         self.option_frame = tk.Frame(self.master)
@@ -171,6 +178,7 @@ class GUI_Hint_Map:
 
     def initialize_hint_grid(self, game: Game):
         self.hint_buttons = self._initialize_abstract_grid(game, self.hint_grid_frame, lambda *_:None)
+        self.generated_action_button.config(command=lambda: self.play_generated_action(game))
         
     def initialize_probability_grid(self, game: Game):
         self.probability_buttons = self._initialize_abstract_grid(game, self.probability_grid_frame, lambda *_:None)
@@ -359,3 +367,7 @@ class GUI_Hint_Map:
             pass
 
         return hints
+    
+    def start_new_game(self):
+        game = Game(Grid(10, 10, 0.25))
+        self.initialize_all_grid(game)

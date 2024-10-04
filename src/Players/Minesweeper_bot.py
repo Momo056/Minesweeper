@@ -53,6 +53,11 @@ class Minesweeper_bot(Player_Interface):
         self.grid = grid
         self.grid_view = grid_view
 
+        # Only make sense on the ~grid_view array
+        self.unkown_region = ~grid_view
+        self.known_mines = np.zeros_like(grid_view)
+        # self.known_no_mines = np.copy(grid_view) # Useless, if we found a known_no_mines, we return it imediatly
+
         if np.all(~self.grid_view):
             # First action of the game
             if self.random_first_move:
@@ -60,11 +65,6 @@ class Minesweeper_bot(Player_Interface):
                     0, grid_view.shape[1] - 1
                 )
             return grid_view.shape[0] // 2, grid_view.shape[1] // 2
-
-        # Only make sense on the ~grid_view array
-        self.unkown_region = ~grid_view
-        self.known_mines = np.zeros_like(grid_view)
-        # self.known_no_mines = np.copy(grid_view) # Useless, if we found a known_no_mines, we return it imediatly
 
         # One box rule on knowledge
         self.to_inspect = list(np.argwhere(np.logical_and(grid_view, grid > 0)))
