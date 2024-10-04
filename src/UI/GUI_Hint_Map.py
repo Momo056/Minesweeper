@@ -42,19 +42,20 @@ class GUI_Hint_Map:
 
         # Create a frame to contain all three grids side by side
         self.main_frame = tk.Frame(self.master)
-        self.main_frame.grid(row=0, column=0, padx=10, pady=10)
+        self.main_frame.grid(row=1, column=0, padx=10, pady=10)
 
-        # Create player grid frame (left side)
-        self.grid_frame = tk.Frame(self.main_frame)
-        self.grid_frame.grid(row=0, column=0, padx=10)
+        # Add each grid
+        self.hint_grid_frame, self.hint_grid_label = self._create_grid(self.main_frame, 'Bot action', 0)
+        self.grid_frame, self.player_grid_label = self._create_grid(self.main_frame, 'Player grid', 1)
+        self.probability_grid_frame, self.probability_grid_label = self._create_grid(self.main_frame, 'Mine probability prediction', 2)
 
-        # Create hint grid frame (middle)
-        self.hint_grid_frame = tk.Frame(self.main_frame)
-        self.hint_grid_frame.grid(row=0, column=1, padx=10)
-
-        # Create probability grid frame (right side)
-        self.probability_grid_frame = tk.Frame(self.main_frame)
-        self.probability_grid_frame.grid(row=0, column=2, padx=10)
+        # Add new button for playing generated action
+        self.generated_action_button = tk.Button(
+            self.master,
+            text="Play Generated Action",
+            command=lambda: self.play_generated_action(game),
+        )
+        self.generated_action_button.grid(row=2, column=0, pady=10)
 
         # Status bar at the bottom of the window
         self.status_bar = tk.Label(
@@ -66,14 +67,6 @@ class GUI_Hint_Map:
         )
         self.status_bar.grid(row=3, column=0, sticky="we")
 
-        # Add new button for playing generated action
-        self.generated_action_button = tk.Button(
-            self.master,
-            text="Play Generated Action",
-            command=lambda: self.play_generated_action(game),
-        )
-        self.generated_action_button.grid(row=2, column=0, pady=10)
-
         # Ensure the status bar sticks to the bottom by configuring rows and columns
         self.master.grid_rowconfigure(2, weight=1)  # Make the last row expand
         self.master.grid_rowconfigure(3, weight=0)  # Ensure extra space is allocated above status bar
@@ -81,6 +74,22 @@ class GUI_Hint_Map:
         # Maximize the window on startup
         self.master.state('zoomed')
         self.master.focus_force()
+
+    
+    def _create_grid(self, outer_frame: tk.Frame, text: str, col: int):
+        # Add label above hint grid
+        label = tk.Label(outer_frame, text=text)
+        label.grid(row=0, column=col, padx=10, pady=5)
+        
+        # Create hint grid frame (middle)
+        frame = tk.Frame(outer_frame)
+        frame.grid(row=0, column=col, padx=10)
+        
+        # Move label under the grid
+        frame.grid(row=1, column=col, padx=10)
+
+        return frame, label
+
 
     def play_generated_action(self, game: Game):
         if self.generated_action is not None:
@@ -152,15 +161,39 @@ class GUI_Hint_Map:
         self.update_status_bar(game)
 
     def update_grid(self, game: Game):
-        def button_updater(button: tk.Button, row: int, col: int):
-            if self.flags[row, col]:
-                text_button = "F"
-                color = "yellow"
-            else:
-                text_button = ""
-                color = "gray"
+        if game.is_ended():
+            if game.result():
+                # Win the game -> Show all mines as flags
+                def button_updater(button: tk.Button, row: int, col: int):
+                    if game.grid.mines[row, col]:
+                        text_button = "F"
+                        color = "yellow"
+                    else:
+                        text_button = ""
+                        color = "gray"
 
-            button.config(text=text_button, bg=color)
+                    button.config(text=text_button, bg=color)
+            else:
+                # Lose the game -> Show all mines
+                def button_updater(button: tk.Button, row: int, col: int):
+                    if game.grid.mines[row, col]:
+                        text_button = "M"
+                        color = "red"
+                    else:
+                        text_button = ""
+                        color = "gray"
+
+                    button.config(text=text_button, bg=color)
+        else:
+            def button_updater(button: tk.Button, row: int, col: int):
+                if self.flags[row, col]:
+                    text_button = "F"
+                    color = "yellow"
+                else:
+                    text_button = ""
+                    color = "gray"
+
+                button.config(text=text_button, bg=color)
 
         self._update_abstract_grid(game, self.buttons, button_updater)
 
