@@ -37,26 +37,38 @@ class GUI_Hint_Map:
         return game.result()
 
     def create_widgets(self, game: Game):
+        current_row = 0
+
         # Centering configuration: allow expansion on left and right of the main frame
         self.master.grid_columnconfigure(0, weight=1)
 
         # Create a frame to contain all three grids side by side
         self.main_frame = tk.Frame(self.master)
-        self.main_frame.grid(row=1, column=0, padx=10, pady=10)
+        self.main_frame.grid(row=current_row, column=0, padx=10, pady=10)
 
         # Add each grid
         self.hint_grid_frame, self.hint_grid_label = self._create_grid(self.main_frame, 'Bot action', 0)
         self.grid_frame, self.player_grid_label = self._create_grid(self.main_frame, 'Player grid', 1)
         self.probability_grid_frame, self.probability_grid_label = self._create_grid(self.main_frame, 'Mine probability prediction', 2)
+        
+        self.player_grid_label.configure(font='Helvetica 18 bold')
 
+        current_row += 1
+        # Add space for end of game feedback
+        self.feedback_label = tk.Label(self.master, text='')
+        self.feedback_label.grid(row=current_row, column=0, pady=10)
+
+        current_row += 1
         # Add new button for playing generated action
         self.generated_action_button = tk.Button(
             self.master,
-            text="Play Generated Action",
+            text="Play bot action",
             command=lambda: self.play_generated_action(game),
         )
-        self.generated_action_button.grid(row=2, column=0, pady=10)
+        self.generated_action_button.grid(row=current_row, column=0, pady=10)
+        self.master.grid_rowconfigure(current_row, weight=1)  # Make the row expand
 
+        current_row += 1
         # Status bar at the bottom of the window
         self.status_bar = tk.Label(
             self.master,
@@ -65,11 +77,8 @@ class GUI_Hint_Map:
             relief=tk.SUNKEN,
             anchor=tk.W,
         )
-        self.status_bar.grid(row=3, column=0, sticky="we")
-
-        # Ensure the status bar sticks to the bottom by configuring rows and columns
-        self.master.grid_rowconfigure(2, weight=1)  # Make the last row expand
-        self.master.grid_rowconfigure(3, weight=0)  # Ensure extra space is allocated above status bar
+        self.status_bar.grid(row=current_row, column=0, sticky="we")
+        self.master.grid_rowconfigure(current_row, weight=0)  # Ensure extra space is allocated above status bar
 
         # Maximize the window on startup
         self.master.state('zoomed')
@@ -78,7 +87,7 @@ class GUI_Hint_Map:
     
     def _create_grid(self, outer_frame: tk.Frame, text: str, col: int):
         # Add label above hint grid
-        label = tk.Label(outer_frame, text=text)
+        label = tk.Label(outer_frame, text=text, font='Helvetica 15')
         label.grid(row=0, column=col, padx=10, pady=5)
         
         # Create hint grid frame (middle)
@@ -154,11 +163,26 @@ class GUI_Hint_Map:
         n_unknown = n_covered - n_flag
         self.status_bar.config(text=f"Total number of mines: {game.grid.n_bomb} | {n_flag} flags | {n_unknown} unknown boxes")
 
+    def update_feedback(self, game: Game):
+        if game.is_ended():
+            if game.result():
+                text = 'YOU WIN !'
+                fg = 'green'
+            else:
+                text = 'YOU LOSE'
+                fg = 'red'
+        else:
+            text = ''
+            fg = 'black'
+        # Initialize feedback
+        self.feedback_label.config(text=text, fg=fg, font='Helvetica 30 bold')
+
     def update_all_grids(self, game: Game):
         self.update_grid(game)
         self.update_hint_grid(game)
         self.update_probability_grid(game)
         self.update_status_bar(game)
+        self.update_feedback(game)
 
     def update_grid(self, game: Game):
         if game.is_ended():
