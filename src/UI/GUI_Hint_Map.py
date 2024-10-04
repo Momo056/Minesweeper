@@ -102,9 +102,14 @@ class GUI_Hint_Map:
 
     def play_generated_action(self, game: Game):
         if self.generated_action is not None:
-            row, col = self.generated_action
+            try:
+                flags = self.bot.get_known_mines()
+                for row, col in np.argwhere(flags):
+                    self.flags[row, col] = True
+            except Exception as e:
+                print(e)
             # Play the action and update the grid
-            self.on_button_click(game, row, col)
+            self.on_button_click(game, *self.generated_action)
         else:
             print("No action is generated yet.")
 
@@ -165,6 +170,7 @@ class GUI_Hint_Map:
 
     def update_feedback(self, game: Game):
         if game.is_ended():
+            font='Helvetica 30 bold'
             if game.result():
                 text = 'YOU WIN !'
                 fg = 'green'
@@ -172,10 +178,16 @@ class GUI_Hint_Map:
                 text = 'YOU LOSE'
                 fg = 'red'
         else:
-            text = ''
+            n_flag = int(np.sum(np.logical_and(self.flags, ~game.player_grid_view)))
+            n_covered = int(np.sum(1-game.player_grid_view))
+            n_unknown = n_covered - n_flag
+            text=f"{game.grid.n_bomb - n_flag} mines left\n{n_flag} flags\n{n_unknown} unknown boxes"
+
+            # text = ''
             fg = 'black'
+            font='Helvetica 10'
         # Initialize feedback
-        self.feedback_label.config(text=text, fg=fg, font='Helvetica 30 bold')
+        self.feedback_label.config(text=text, fg=fg, font=font)
 
     def update_all_grids(self, game: Game):
         self.update_grid(game)
