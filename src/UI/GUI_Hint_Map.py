@@ -59,6 +59,11 @@ class GUI_Hint_Map:
         self.feedback_label.grid(row=current_row, column=0, pady=10)
 
         current_row += 1
+        # Add space for end of game feedback
+        self.status_bar = tk.Label(self.master, text='')
+        self.status_bar.grid(row=current_row, column=0, pady=10)
+
+        current_row += 1
         # Add new button for playing generated action
         self.generated_action_button = tk.Button(
             self.master,
@@ -67,18 +72,6 @@ class GUI_Hint_Map:
         )
         self.generated_action_button.grid(row=current_row, column=0, pady=10)
         self.master.grid_rowconfigure(current_row, weight=1)  # Make the row expand
-
-        current_row += 1
-        # Status bar at the bottom of the window
-        self.status_bar = tk.Label(
-            self.master,
-            text="Total number of mines: Unknown",
-            bd=1,
-            relief=tk.SUNKEN,
-            anchor=tk.W,
-        )
-        self.status_bar.grid(row=current_row, column=0, sticky="we")
-        self.master.grid_rowconfigure(current_row, weight=0)  # Ensure extra space is allocated above status bar
 
         # Maximize the window on startup
         self.master.state('zoomed')
@@ -166,11 +159,14 @@ class GUI_Hint_Map:
         n_flag = int(np.sum(np.logical_and(self.flags, ~game.player_grid_view)))
         n_covered = int(np.sum(1-game.player_grid_view))
         n_unknown = n_covered - n_flag
-        self.status_bar.config(text=f"Total number of mines: {game.grid.n_bomb} | {n_flag} flags | {n_unknown} unknown boxes")
+        text=f"{game.grid.n_bomb - n_flag} mines left\n{n_flag} flags\n{n_unknown} unknown boxes"
+        
+        self.status_bar.config(text=text)
+
+            
 
     def update_feedback(self, game: Game):
         if game.is_ended():
-            font='Helvetica 30 bold'
             if game.result():
                 text = 'YOU WIN !'
                 fg = 'green'
@@ -178,16 +174,10 @@ class GUI_Hint_Map:
                 text = 'YOU LOSE'
                 fg = 'red'
         else:
-            n_flag = int(np.sum(np.logical_and(self.flags, ~game.player_grid_view)))
-            n_covered = int(np.sum(1-game.player_grid_view))
-            n_unknown = n_covered - n_flag
-            text=f"{game.grid.n_bomb - n_flag} mines left\n{n_flag} flags\n{n_unknown} unknown boxes"
-
-            # text = ''
+            text = ''
             fg = 'black'
-            font='Helvetica 10'
         # Initialize feedback
-        self.feedback_label.config(text=text, fg=fg, font=font)
+        self.feedback_label.config(text=text, fg=fg, font='Helvetica 30 bold')
 
     def update_all_grids(self, game: Game):
         self.update_grid(game)
