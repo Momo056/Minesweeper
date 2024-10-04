@@ -73,9 +73,54 @@ class GUI_Hint_Map:
         )
         self.generated_action_button.grid(row=current_row, column=0, pady=10)
 
+        current_row += 1
+        self.option_frame = tk.Frame(self.master)
+        self.option_frame.grid(row=current_row, column=0, padx=10, pady=10)
+        self._create_option(self.option_frame)
+
         # Maximize the window on startup
         self.master.state('zoomed')
         self.master.focus_force()
+
+    def _create_option(self, outer_frame: tk.Frame):
+        self.hint_checkbox = self._abstract_checkbox(outer_frame, 0, 'Bot action', self.show_hint_grid, self.hide_hint_grid)
+        self.probability_checkbox = self._abstract_checkbox(outer_frame, 1, 'Probability prediction', self.show_probability_grid, self.hide_probability_grid)
+
+    def _abstract_checkbox(self, outer_frame: tk.Frame, col: int, text: str, on_func: Callable, off_func: Callable):
+        # Probability
+        var = tk.BooleanVar()
+        def update_probability_checkbox():
+            if var.get():
+                on_func()
+            else:
+                off_func()
+        checkbox = tk.Checkbutton(outer_frame, variable=var, onvalue=True, offvalue=False, text=text, command=update_probability_checkbox)
+        checkbox.grid(row=0, column=col, padx=10)
+        checkbox.select()
+
+        return checkbox
+    
+    def show_hint_grid(self):
+        self._show_abstract_grid(self.hint_grid_frame, self.hint_grid_label, 0)
+        self.generated_action_button.config(state=tk.NORMAL)
+
+    def hide_hint_grid(self):
+        self._hide_abstract_grid(self.hint_grid_frame, self.hint_grid_label)
+        self.generated_action_button.config(state=tk.DISABLED)
+
+    def show_probability_grid(self):
+        self._show_abstract_grid(self.probability_grid_frame, self.probability_grid_label, col=2)
+
+    def hide_probability_grid(self):
+        self._hide_abstract_grid(self.probability_grid_frame, self.probability_grid_label)
+
+    def _show_abstract_grid(self, frame:tk.Frame, label: tk.Label, col: int):
+        frame.grid(row=1, column=col, padx=10)
+        label.grid(row=0, column=col, padx=10)
+
+    def _hide_abstract_grid(self, frame:tk.Frame, label: tk.Label):
+        frame.grid_forget()
+        label.grid_forget()
 
     
     def _create_grid(self, outer_frame: tk.Frame, text: str, col: int):
@@ -85,10 +130,8 @@ class GUI_Hint_Map:
         
         # Create hint grid frame (middle)
         frame = tk.Frame(outer_frame)
-        frame.grid(row=0, column=col, padx=10)
         
-        # Move label under the grid
-        frame.grid(row=1, column=col, padx=10)
+        self._show_abstract_grid(frame, label, col)
 
         return frame, label
 
