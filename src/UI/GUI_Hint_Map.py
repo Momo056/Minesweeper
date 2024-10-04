@@ -1,4 +1,5 @@
 from math import prod
+import re
 import tkinter as tk
 from typing import Any, Callable
 import numpy as np
@@ -81,6 +82,13 @@ class GUI_Hint_Map:
         self.new_game_button.grid(row=0, column=1, pady=10)
 
         current_row += 1
+        # New game parameters
+        self.game_parameter_frame = tk.Frame(self.master)
+        self.game_parameter_frame.grid(row=current_row, column=0, pady=10)
+        self.create_new_game_parameters(self.game_parameter_frame, game)
+
+        # Grid options
+        current_row += 1
         self.option_frame = tk.Frame(self.master)
         self.option_frame.grid(row=current_row, column=0, padx=10, pady=10)
         self._create_option(self.option_frame)
@@ -141,6 +149,61 @@ class GUI_Hint_Map:
         self._show_abstract_grid(frame, label, col)
 
         return frame, label
+    
+    
+    def create_new_game_parameters(self, outer_frame: tk.Frame, game: Game):
+        grid_size = game.grid.grid_shape()
+        if grid_size[0] == grid_size[1]:
+            str_grid_size = str(grid_size[0])
+        else:
+            str_grid_size = f'{grid_size[0]} {grid_size[1]}'
+        self.grid_size_var = tk.StringVar(value=str_grid_size)
+
+        grid_size_label = tk.Label(outer_frame, text='Grid size :')
+        grid_size_label.grid(row=0, column=0)
+
+        grid_size_entry = tk.Entry(outer_frame, textvariable=self.grid_size_var)
+        grid_size_entry.grid(row=0, column=1)
+
+
+        mine_percent = game.grid.n_bomb / prod(grid_size)
+        str_mine_percent = f'{round(100*mine_percent)}'
+        self.mine_percent_variable = tk.StringVar(value=str_mine_percent)
+
+        mine_percent_label = tk.Label(outer_frame, text='Mine percentage :')
+        mine_percent_label.grid(row=1, column=0)
+
+        mine_percent_entry = tk.Entry(outer_frame, textvariable=self.mine_percent_variable)
+        mine_percent_entry.grid(row=1, column=1)
+
+    def read_grid_size(self):
+        str_grid_size = self.grid_size_var.get().strip()
+
+        regex_match = re.match(r'[0-9]+ +[0-9]+', str_grid_size)
+        if regex_match is not None:
+            part = str_grid_size[regex_match.start():regex_match.end()]
+            return [int(s) for s in part.split(' ') if s != '']
+    
+        regex_match = re.match(r'[0-9]+', str_grid_size)
+        if regex_match is not None:
+            s = int(str_grid_size[regex_match.start():regex_match.end()])
+            return [s, s]
+        
+        raise Exception('Grid size do not mmatch any of the pattern : [0-9]+ or [0-9]+ +[0-9]+')
+    
+    def read_mine_percent(self):
+        str_mine_percent = self.mine_percent_variable.get()
+
+        regex_match = re.match(r'([0-9]+[.])?[0-9]+', str_mine_percent)
+        if regex_match is not None:
+            value = float(str_mine_percent[regex_match.start():regex_match.end()])
+
+            if value < 1:
+                return value
+            
+            return value/100.0
+        
+        raise Exception('Mine percentage do not match the pattern : ([0-9]+[.])?[0-9]+')
 
 
     def play_generated_action(self, game: Game):
@@ -184,6 +247,9 @@ class GUI_Hint_Map:
         self.probability_buttons = self._initialize_abstract_grid(game, self.probability_grid_frame, lambda *_:None)
 
     def _initialize_abstract_grid(self, game: Game, frame: tk.Frame, button_updater: Callable[[tk.Button, int, int], None]):
+        for widget in frame.winfo_children():
+            widget.destroy()
+
         # Create the buttons/grid for the probabilities
         button_matrix: list[list[tk.Button]] = []
         for row in range(game.grid.grid_shape()[0]):
@@ -369,5 +435,18 @@ class GUI_Hint_Map:
         return hints
     
     def start_new_game(self):
-        game = Game(Grid(10, 10, 0.25))
+        try:
+            grid_size = self.read_grid_size()
+            mine_percent = self.read_mine_percent()
+        except Exception as e:
+            print(e)
+            grid_size = None
+            mine_percent = None
+            self.feedback_label.config(text=str(e))
+
+        if grid_size is None or mine_percent is None:
+            return
+            
+        grid = Grid(*grid_size, mine_percent)
+        game = Game(grid)
         self.initialize_all_grid(game)
