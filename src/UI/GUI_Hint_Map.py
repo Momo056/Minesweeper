@@ -68,10 +68,10 @@ class GUI_Hint_Map:
         self.generated_action_button = tk.Button(
             self.master,
             text="Play bot action",
+            font='Helvetica 16',
             command=lambda: self.play_generated_action(game),
         )
         self.generated_action_button.grid(row=current_row, column=0, pady=10)
-        self.master.grid_rowconfigure(current_row, weight=1)  # Make the row expand
 
         # Maximize the window on startup
         self.master.state('zoomed')
