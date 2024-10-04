@@ -7,3 +7,4 @@ training_runs/
 debug.py
 hyperparameters_runs/
 batch_hparams_runs/
+TODO.md
