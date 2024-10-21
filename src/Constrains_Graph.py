@@ -37,15 +37,8 @@ class Constrains_Graph:
 
 
     def analyze(self, grid_knowledge: Grid_Knowledge):
-        # print('Graph knowledge')
-        # print(grid_knowledge.knowledge)
         self.grid_knowledge = grid_knowledge
         possible_left = [tuple(b.tolist()) for b in np.argwhere(grid_knowledge.knowledge == UNKNOWN)]
-        # print('Should all be UNKNOWN (1)')
-        # print([grid_knowledge.knowledge[*l] for l in possible_left])
-        # print('Corresponding lefts')
-        # print(possible_left)
-        # print()
 
         # Reset right nodes
         self.right_nodes = {}
@@ -67,7 +60,6 @@ class Constrains_Graph:
             self.right_nodes[right] = Right_Node(self.compute_right_value(right), set())
 
         self.right_nodes[right].neighbors.add(left)
-        print(f'Add : {left} <- {right}')
 
     def compute_right_value(self, right: Box):
         right_neighbors = self.grid_knowledge.all_neighbors(*right)

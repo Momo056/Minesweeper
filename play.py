@@ -147,7 +147,7 @@ if __name__ == "__main__":
                 return result
             return print_exec
         map_providers.append(
-            print_wrapper(Brut_Force_Map_Provider(Grid_Probability(args.bruteforce_limit)))
+            Brut_Force_Map_Provider(Grid_Probability(args.bruteforce_limit))
         )
 
     if args.model_type is not None:
