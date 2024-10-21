@@ -12,7 +12,7 @@ class GUI_Hint_Map:
     def __init__(
         self,
         bot: Player_Interface,
-        map_provider: Callable[[np.ndarray, np.ndarray], np.ndarray] | None,
+        map_provider: Callable[[np.ndarray, np.ndarray], np.ndarray|None] | None,
         master: tk.Tk | None = None,
     ):
         self.master = master if master is not None else tk.Tk()

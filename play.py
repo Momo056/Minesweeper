@@ -3,6 +3,10 @@ from tkinter import Tk
 
 from numpy import ndarray
 import numpy as np
+from src.Brut_Force_Map_Provider import Brut_Force_Map_Provider
+from src.Grid_Probability import Grid_Probability
+from src.Map_Provider_List import Map_Provider_List
+from src.Players.Knowledge_Bot import Knowledge_Bot
 from src.Players.No_Action_Player import No_Action_Player
 from src.UI.GUI_Hint_Map import GUI_Hint_Map
 from src.Players import Player_Interface
@@ -48,10 +52,25 @@ def parse_arguments():
         help="Chemin vers le fichier contenant les poids du modèle PyTorch (par défaut : None).",
     )
 
+    # Use brut force probability estimator
+    parser.add_argument(
+        "--use_bruteforce",
+        action="store_true",
+        help="Active l'estimateur de probabilité par force brute. Si non spécifié, l'estimateur n'est pas utilisé.",
+    )
+
+    # Limit for the brute force method
+    parser.add_argument(
+        "--bruteforce_limit",
+        type=int,
+        default=25,
+        help="Limite pour la méthode de force brute (doit être un entier positif, par défaut : 25).",
+    )
+
     return parser.parse_args()
 
 
-def get_probability_model(model_type: str, model_parameters: str) -> Player_Interface:
+def get_probability_model(model_type: str, model_parameters: str):
     print("Loading torch")
     from Lightning.Model_provider import MODEL_PROVIDER_DICT
     import torch
@@ -95,19 +114,49 @@ if __name__ == "__main__":
     mine_percent = args.mine_percent
 
     # Instanciate the bot
-    minesweeper_bot = Minesweeper_bot(
-        True, True, delegated_if_no_solution=No_Action_Player()
-    )  # Utilisation du modèle si nécessaire (à adapter si besoin)
+    # minesweeper_bot = Minesweeper_bot(
+    #     True, True, delegated_if_no_solution=No_Action_Player()
+    # )  # Utilisation du modèle si nécessaire (à adapter si besoin)
+    minesweeper_bot = Knowledge_Bot()
 
     master = Tk()
 
+    # Probability map provider building
+    # Providers listed by priority
+    # The first one to return a successfull resutl is used
+    map_providers = []
+    
+    if args.use_bruteforce:
+        def print_wrapper(func: Brut_Force_Map_Provider):
+            def print_exec(*args):
+                print('-'*100)
+                result = func(*args)
+                print()
+                print('Knowledge')
+                print(func.grid_probability.grid_knowledge.knowledge)
+                print()
+                print('Probabilities')
+                if func.grid_probability.mine_probability_map is not None:
+                    print(np.round(100*func.grid_probability.mine_probability_map))
+                print()
+                print('Constraints')
+                print('Left')
+                print(func.grid_probability.constraint_graph.ordered_left)
+                print('Right')
+                print(func.grid_probability.constraint_graph.ordered_right)
+                return result
+            return print_exec
+        map_providers.append(
+            print_wrapper(Brut_Force_Map_Provider(Grid_Probability(args.bruteforce_limit)))
+        )
+
     if args.model_type is not None:
         # Load model
-        map_provider = get_probability_model(args.model_type, args.model_parameters)
-        gui = GUI_Hint_Map(minesweeper_bot, map_provider, master)
-    else:
-        gui = GUI_Hint_Map(minesweeper_bot, None, master)
-    # minesweeper_bot = delegate_model
+        map_providers.append(get_probability_model(args.model_type, args.model_parameters))
+
+    map_provider = Map_Provider_List(map_providers)
+
+    gui = GUI_Hint_Map(minesweeper_bot, map_provider, master)
 
     # Main code
     grid = Grid(*grid_size, mine_percent)
